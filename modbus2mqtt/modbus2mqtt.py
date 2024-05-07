@@ -1,20 +1,15 @@
-from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
-from yaml import safe_load
-from pathlib import Path
-import logging
-from pymodbus.client import AsyncModbusTcpClient
-import importlib
-
-from .util import to_camel_case
-from . import __version__
-
-from aiomqtt import Client as MqttClient, MqttError
-
 import asyncio
+import logging
+from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
+from pathlib import Path
 
+from aiomqtt import Client as MqttClient
+from aiomqtt import MqttError
 
-class InvalidConfigurationException(Exception):
-    pass
+from modbus2mqtt import __version__
+from modbus2mqtt.config import parse_config
+from modbus2mqtt.modbus_gateway import modbus_gateway
+
 
 def parse_args() -> Namespace:
 
@@ -38,52 +33,11 @@ def parse_args() -> Namespace:
 
     return args
 
-def parse_config(filename: Path) -> dict:
-    try:
-        return safe_load(open(filename, "r"))
-    except Exception as e:
-        logging.error("Can't load yaml file %r (%r)" % (filename, e))
-        raise
-
-async def modbus_gateway(name: str, config: dict, mqtt_client: MqttClient, mqtt_prefix: str, classes_config: dict):
-    client = AsyncModbusTcpClient(
-        host=config['address'],
-        port=config['port'],
-        # framer=args.framer,
-        # timeout=args.timeout,
-        # retries=3,
-        # reconnect_delay=1,
-        # reconnect_delay_max=10,
-        )
-
-    await client.connect()
-
-    async with asyncio.TaskGroup() as tg:
-        for unit, config in config['devices'].items():
-            try:
-                module = importlib.import_module(f".devices.{config['class']}", __package__)
-            except ModuleNotFoundError:
-                raise InvalidConfigurationException(f"Class '{config['class']}' not supported.")
-
-            class_name = to_camel_case(config['class'])
-
-            if not hasattr(module, class_name):
-                raise InvalidConfigurationException(f"Class '{config['class']}' not supported.")
-
-            class_ = getattr(module, class_name)
-
-            device_config = classes_config.get(config['class'], {}).copy()
-            device_config.update({k: v for k,v in config.items() if k != 'class'})
-
-            device = class_(client=client, unit=unit, mqtt_client=mqtt_client, mqtt_prefix=f"{mqtt_prefix}{config['class']}/", config=device_config)
-            tg.create_task(device.task())
-
-    client.close()
 
 async def async_main():
     args = parse_args()
 
-    logging.basicConfig(format="%(asctime)s %(levelname)-6s %(message)s",
+    logging.basicConfig(format="%(asctime)s %(levelname)-7s %(message)s",
                         level=max(3 - args.verbose_count, 0) * 10)
 
     try:
@@ -106,14 +60,20 @@ async def async_main():
                     for name, gateway_config in config['modbus']['gateways'].items():
                         tg.create_task(modbus_gateway(name=name, config=gateway_config, mqtt_client=mqtt_client, mqtt_prefix=mqtt_prefix, classes_config=config['modbus'].get('classes', {})))
 
+                return 0
+
         except MqttError as error:
-            print(f'Error "{error}". Reconnecting in 1 seconds.')
-            await asyncio.sleep(5)
+            logging.error(f'Error "{error}". Reconnecting in 1 seconds.')
+            await asyncio.sleep(1)
+
+        except Exception as e:
+            logging.error("Exception not handled", exc_info=True)
+            return -1
 
 
 def main():
-    asyncio.run(async_main())
+    return asyncio.run(async_main())
 
 if __name__ == "__main__":
-    main()
+    exit(main())
 

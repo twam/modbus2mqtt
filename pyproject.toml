@@ -22,8 +22,19 @@ construct="^2.10.70"
 ruff = "*"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.ruff]
 line-length = 140
+
+[tool.ruff.lint]
+# "ANN", 
+select = ["F", "E", "W", "I", "N", "UP", "YTT", "ASYNC", "BLE", "FBT", "B", "COM", "C4", "DTZ", "EM", "EXE", "FA", "ISC", "ICN", "LOG", "G", "INP", "PIE", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "INT", "ARG", "PTH", "FIX", "ERA", "NPY", "RUF"]
+ignore = ["EXE002", "G004"]
+
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
