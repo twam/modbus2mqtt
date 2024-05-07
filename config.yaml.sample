@@ -1,0 +1,34 @@
+mqtt:
+  address: localhost
+  port: 1883
+#  username: username
+#  password: topsecret
+  prefix: modbus/
+
+modbus:
+  classes:
+    abb_meter:
+      intervals:
+        "^energy": 30
+        "^current": 5
+        "^power": 1
+        "^voltage": 5
+        "^frequency": 5
+
+  gateways:
+    gateway-pv:
+      address: eport-pe11
+      port: 502
+      devices:
+        1:
+          class: growatt_inverter
+
+        2:
+          class: growatt_inverter
+
+    gateway-grid:
+      address: 192.168.1.1
+      port: 502
+      devices:
+        1:
+          class: abb_meter

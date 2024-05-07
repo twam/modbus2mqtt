@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "modbus2mqtt"
+version = "0.0.1"
+description = ""
+authors = [
+	"Tobias Müller <Tobias_Mueller@twam.info>"
+]
+license = "MIT"
+
+[tool.poetry.scripts]
+modbus2mqtt = 'modbus2mqtt.modbus2mqtt:main'
+
+[tool.poetry.dependencies]
+python="^3.11"
+PyYAML="^6.0"
+paho-mqtt="<2" # asyncio-mqtt isn't working with 2, yet
+aiomqtt="^2.0.0"
+pymodbus="^3.6.6"
+construct="^2.10.70"
+
+[tool.poetry.dev-dependencies]
+ruff = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 140
