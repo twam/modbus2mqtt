@@ -1,2 +1,2 @@
-class InvalidConfigurationException(Exception):
+class InvalidConfigurationError(Exception):
     pass

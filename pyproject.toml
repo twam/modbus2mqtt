@@ -20,6 +20,9 @@ construct="^2.10.70"
 
 [tool.poetry.dev-dependencies]
 ruff = "*"
+pytest = "*"
+pytest-mock = "*"
+pytest-asyncio = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
@@ -38,3 +41,6 @@ ignore = ["EXE002", "G004"]
 enable = true
 vcs = "git"
 style = "semver"
+
+#[pytest]
+#asyncio_mode = auto

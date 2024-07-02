@@ -1,6 +1,8 @@
 import asyncio
+import logging
 import re
-from datetime import datetime
+from datetime import UTC, datetime
+from types import MappingProxyType
 
 from construct import Adapter, Byte, Int16sb, Int16ub, Int32sb, Int32ub, Int64sb, Int64ub, PaddedString, Padding, Struct
 
@@ -157,7 +159,7 @@ class AbbMeter(Device):
         "CurrentQuandrantL3" / Factor(1, Int16ub),
     )
 
-    TOPICS = {
+    TOPICS = MappingProxyType({
         "ActiveImport": "energy/import",
         "ActiveExport": "energy/export",
         "ActiveNet": "energy/net",
@@ -181,33 +183,37 @@ class AbbMeter(Device):
         "ActivePowerL2": "power/L2",
         "ActivePowerL3": "power/L3",
         "Frequency": "frequency",
-    }
+    })
 
     @staticmethod
     async def _wait_until(dt: datetime):
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         await asyncio.sleep((dt - now).total_seconds())
 
     async def get_messages(self):
         productdata_and_identification = await self.client.read_holding_registers(
-            address=0x8900, count=self.PRODUCTDATA_AND_IDENTIFICATION.sizeof() // 2, slave=self.unit
+            address=0x8900, count=self.PRODUCTDATA_AND_IDENTIFICATION.sizeof() // 2, slave=self.unit,
         )
         parsed_productdata_and_identification = self.PRODUCTDATA_AND_IDENTIFICATION.parse(
-            bytes(sum([[v >> 8, v & 0xFF] for v in productdata_and_identification.registers], []))
+            bytes(sum([[v >> 8, v & 0xFF] for v in productdata_and_identification.registers], [])),
         )
+
+        if parsed_productdata_and_identification is None:
+            logging.error("Could not parse 'productdata_and_identification'.")
+            return
 
         serial_number = parsed_productdata_and_identification.search("SerialNumber")
 
         next_send = {}
 
         while True:
-            now = datetime.now().timestamp()
+            now = datetime.now(tz=UTC).timestamp()
 
             energy_total = await self.client.read_holding_registers(address=0x5000, count=self.ENERGY_TOTAL.sizeof() // 2, slave=self.unit)
             parsed_energy_total = self.ENERGY_TOTAL.parse(bytes(sum([[v >> 8, v & 0xFF] for v in energy_total.registers], [])))
 
             energy_per_phase = await self.client.read_holding_registers(
-                address=0x5460, count=self.ENERGY_PER_PHASE.sizeof() // 2, slave=self.unit
+                address=0x5460, count=self.ENERGY_PER_PHASE.sizeof() // 2, slave=self.unit,
             )
             parsed_energy_per_phase = self.ENERGY_PER_PHASE.parse(bytes(sum([[v >> 8, v & 0xFF] for v in energy_per_phase.registers], [])))
 
@@ -230,4 +236,4 @@ class AbbMeter(Device):
 
             next_wakeup = min(next_send.values())
 
-            await asyncio.sleep(next_wakeup - datetime.now().timestamp())
+            await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())

@@ -15,26 +15,24 @@ def parse_args() -> Namespace:
 
     parser = ArgumentParser(
         formatter_class=RawDescriptionHelpFormatter,
-        add_help=True
+        add_help=True,
         )
 
     parser.add_argument("-c", "--conf_file",
                         help="Specify config file", metavar="FILE", required = True, type=Path)
 
     parser.add_argument("-d", "--daemon",
-                        help="Run as daemon", action='store_true')
+                        help="Run as daemon", action="store_true")
 
     parser.add_argument("-v", "--verbose",
                         help="Increases log verbosity for each occurence", dest="verbose_count", action="count", default=0)
 
-    parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument("--version", action="version", version=__version__)
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
-async def async_main():
+async def async_main() -> int:
     args = parse_args()
 
     logging.basicConfig(format="%(asctime)s %(levelname)-7s %(message)s",
@@ -44,17 +42,17 @@ async def async_main():
         config = parse_config(args.conf_file)
     except Exception as e:
         logging.error("Failure while reading configuration file '%s': %r" % (args.conf_file, e))
-        return
+        return -1
 
     while True:
         try:
             async with MqttClient(
-                hostname = config['mqtt']['address'],
-                port = config['mqtt'].get('port', 1883),
-                username = config['mqtt'].get('username', None),
-                password = config['mqtt'].get('password', None)
+                hostname = config["mqtt"]["address"],
+                port = config["mqtt"].get("port", 1883),
+                username = config["mqtt"].get("username", None),
+                password = config["mqtt"].get("password", None),
                 ) as mqtt_client:
-                mqtt_prefix = config['mqtt'].get('prefix', '')
+                mqtt_prefix = config["mqtt"].get("prefix", "")
 
                 async with asyncio.TaskGroup() as tg:
                     for name, gateway_config in config['modbus']['gateways'].items():
@@ -71,7 +69,7 @@ async def async_main():
             return -1
 
 
-def main():
+def main() -> int:
     return asyncio.run(async_main())
 
 if __name__ == "__main__":

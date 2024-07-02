@@ -1,11 +1,12 @@
 import logging
 
 from aiomqtt import Client as MqttClient
+from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusIOException
 
 
 class Device:
-    def __init__(self, client, unit: int, mqtt_client: MqttClient, mqtt_prefix: str, config: dict):
+    def __init__(self, client: AsyncModbusTcpClient, unit: int, mqtt_client: MqttClient, mqtt_prefix: str, config: dict):
         self.client = client
         self.unit = unit
         self.mqtt_client = mqtt_client
@@ -19,7 +20,7 @@ class Device:
                     await self.mqtt_client.publish(self.mqtt_prefix + topic, value)
 
             except ModbusIOException as e:
-                logging.error(e, exc_info=True)
+                logging.exception(e)
                 return
 
             # except ConnectionException as e:
