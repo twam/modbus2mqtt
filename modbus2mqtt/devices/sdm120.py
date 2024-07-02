@@ -72,8 +72,6 @@ class Sdm120(Device):
             measurements = await self.client.read_input_registers(address=0x0000, count=self.MEASUREMENTS.sizeof() // 2, slave=self.unit)
             parsed_measurements = self.MEASUREMENTS.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in measurements.registers], [])))
 
-            print(parsed_measurements)
-
             for name, topic in self.TOPICS.items():
                 for parsed_data in [parsed_measurements]:
                     value = parsed_data.search(rf"^{name}$")
