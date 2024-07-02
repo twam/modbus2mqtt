@@ -2,6 +2,8 @@ import asyncio
 import logging
 import re
 from datetime import UTC, datetime
+from functools import reduce
+from operator import iadd
 from types import MappingProxyType
 
 from construct import Float32b, Int32ub, Padding, Struct
@@ -53,7 +55,7 @@ class Sdm120(Device):
             address=0xFC00, count=self.SERIAL_NUMBER.sizeof() // 2, slave=self.unit,
         )
         parsed_serial_number = self.SERIAL_NUMBER.parse(
-            bytes(sum([[v >> 8, v & 0xFF] for v in serial_number.registers], [])),
+            bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in serial_number.registers], [])),
         )
 
         if parsed_serial_number is None:
@@ -68,7 +70,7 @@ class Sdm120(Device):
             now = datetime.now(tz=UTC).timestamp()
 
             measurements = await self.client.read_input_registers(address=0x0000, count=self.MEASUREMENTS.sizeof() // 2, slave=self.unit)
-            parsed_measurements = self.MEASUREMENTS.parse(bytes(sum([[v >> 8, v & 0xFF] for v in measurements.registers], [])))
+            parsed_measurements = self.MEASUREMENTS.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in measurements.registers], [])))
 
             print(parsed_measurements)
 

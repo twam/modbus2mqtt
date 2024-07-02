@@ -2,6 +2,8 @@ import asyncio
 import logging
 import re
 from datetime import UTC, datetime
+from functools import reduce
+from operator import iadd
 from types import MappingProxyType
 
 from construct import Adapter, Byte, Int16sb, Int16ub, Int32sb, Int32ub, Int64sb, Int64ub, PaddedString, Padding, Struct
@@ -195,7 +197,7 @@ class AbbMeter(Device):
             address=0x8900, count=self.PRODUCTDATA_AND_IDENTIFICATION.sizeof() // 2, slave=self.unit,
         )
         parsed_productdata_and_identification = self.PRODUCTDATA_AND_IDENTIFICATION.parse(
-            bytes(sum([[v >> 8, v & 0xFF] for v in productdata_and_identification.registers], [])),
+            bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in productdata_and_identification.registers], [])),
         )
 
         if parsed_productdata_and_identification is None:
@@ -210,15 +212,15 @@ class AbbMeter(Device):
             now = datetime.now(tz=UTC).timestamp()
 
             energy_total = await self.client.read_holding_registers(address=0x5000, count=self.ENERGY_TOTAL.sizeof() // 2, slave=self.unit)
-            parsed_energy_total = self.ENERGY_TOTAL.parse(bytes(sum([[v >> 8, v & 0xFF] for v in energy_total.registers], [])))
+            parsed_energy_total = self.ENERGY_TOTAL.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in energy_total.registers], [])))
 
             energy_per_phase = await self.client.read_holding_registers(
                 address=0x5460, count=self.ENERGY_PER_PHASE.sizeof() // 2, slave=self.unit,
             )
-            parsed_energy_per_phase = self.ENERGY_PER_PHASE.parse(bytes(sum([[v >> 8, v & 0xFF] for v in energy_per_phase.registers], [])))
+            parsed_energy_per_phase = self.ENERGY_PER_PHASE.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in energy_per_phase.registers], [])))
 
             measurements = await self.client.read_holding_registers(address=0x5B00, count=self.MEASUREMENTS.sizeof() // 2, slave=self.unit)
-            parsed_measurements = self.MEASUREMENTS.parse(bytes(sum([[v >> 8, v & 0xFF] for v in measurements.registers], [])))
+            parsed_measurements = self.MEASUREMENTS.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in measurements.registers], [])))
 
             for name, topic in self.TOPICS.items():
                 for parsed_data in [parsed_energy_total, parsed_energy_per_phase, parsed_measurements]:
