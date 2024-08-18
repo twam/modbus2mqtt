@@ -4,7 +4,7 @@ from functools import reduce
 from operator import iadd
 from types import MappingProxyType
 
-from construct import Adapter, Int16ub, Int32ub, PaddedString, Seek, Struct
+from construct import Adapter, Int16ub, Int32ub, PaddedString, Seek, Struct, Padding
 
 from modbus2mqtt.devices import Device
 
@@ -31,28 +31,32 @@ class GrowattInverter(Device):
         "PV2Voltage" / Factor(0.1, Int16ub),
         "PV2InputCurrent" / Factor(0.1, Int16ub),
         "PV2InputPower" / Factor(0.1, Int32ub),
-        Seek(35 * 2),
+        # Seek(35 * 2),
+        Padding(24 * 2),
         "OutputPower" / Factor(0.1, Int32ub),
         "GridFrequency" / Factor(0.01, Int16ub),
         "L1ThreePhaseGridVoltage" / Factor(0.1, Int16ub),
         "L1ThreePhaseGridOutputCurrent" / Factor(0.1, Int16ub),
         "L1ThreePhaseGridOutputPower" / Factor(0.1, Int32ub),
-        Seek(53 * 2),
+        # Seek(53 * 2),
+        Padding(11 * 2),
         "TodayGenerateEnergy" / Factor(100, Int32ub),
         "TotalGenerateEnergy" / Factor(100, Int32ub),
-        Seek(59 * 2),
+        Padding(2 * 2),
+        # Seek(59 * 2),
         "PV1EnergyToday" / Factor(100, Int32ub),
         "PV1EnergyTotal" / Factor(100, Int32ub),
         "PV2EnergyToday" / Factor(100, Int32ub),
         "PV2EnergyTotal" / Factor(100, Int32ub),
-        Seek(93 * 2),
+        # Seek(93 * 2),
+        Padding(26 * 2),
         "InverterTemperature" / Factor(0.1, Int16ub),
-        Seek(105 * 2),
-        "FaultMainCode" / Int16ub,
-        "FaultSubCode" / Int16ub,
+        # Seek(105 * 2),
+        # "FaultMainCode" / Int16ub,
+        # "FaultSubCode" / Int16ub,
     )
 
-    HOLDING_FRAME1 = Struct(Seek(1 * 2), "SerialNumber" / PaddedString(30, encoding="ASCII"))
+    HOLDING_FRAME1 = Struct(Padding(1 * 2), "SerialNumber" / PaddedString(30, encoding="ASCII"))
 
     DATAPOINTS = MappingProxyType({
         "InputPower": "0/powerdc",
@@ -79,7 +83,7 @@ class GrowattInverter(Device):
     })
 
     async def get_messages(self):
-        holding_frame1 = await self.client.read_holding_registers(address=3000, count=125, slave=self.unit)
+        holding_frame1 = await self.client.read_holding_registers(address=3000, count=self.HOLDING_FRAME1.sizeof() // 2, slave=self.unit)
         parsed_holding_frame1 = self.HOLDING_FRAME1.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in holding_frame1.registers], [])))
 
         if parsed_holding_frame1 is None:
@@ -89,7 +93,7 @@ class GrowattInverter(Device):
         serial_number = parsed_holding_frame1.search("SerialNumber")
 
         while True:
-            input_frame1 = await self.client.read_input_registers(address=0, count=125, slave=self.unit)
+            input_frame1 = await self.client.read_input_registers(address=0, count=self.INPUT_FRAME1.sizeof() // 2, slave=self.unit)
             parsed_input_frame1 = self.INPUT_FRAME1.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in input_frame1.registers], [])))
 
             if parsed_input_frame1 is None:
