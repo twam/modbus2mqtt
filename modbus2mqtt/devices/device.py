@@ -16,8 +16,9 @@ class Device:
     async def task(self):
         while True:
             try:
-                async for topic, value in self.get_messages():
-                    await self.mqtt_client.publish(self.mqtt_prefix + topic, value)
+                async for kwargs in self.get_messages():
+                    kwargs['topic'] = self.mqtt_prefix + kwargs['topic']
+                    await self.mqtt_client.publish(**kwargs)
 
             except ModbusIOException as e:
                 logging.exception(e)

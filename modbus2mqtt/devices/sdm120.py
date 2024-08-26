@@ -84,7 +84,7 @@ class Sdm120(Device):
 
                         if now > next_send.get(topic, 0):
                             next_send[topic] = (now // interval + 1) * interval
-                            yield f"{serial_number}/{topic}", value
+                            yield {'topic': f"{serial_number}/{topic}", 'payload': value}
 
             next_wakeup = min(next_send.values())
 

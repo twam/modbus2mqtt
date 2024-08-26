@@ -103,6 +103,6 @@ class GrowattInverter(Device):
             for name, topic in self.DATAPOINTS.items():
                 value = parsed_input_frame1.search(rf"^{name}$")
                 if value is not None:
-                    yield f"{serial_number}/{topic}", value
+                    yield {'topic': f"{serial_number}/{topic}", 'payload': value}
 
             await asyncio.sleep(5)

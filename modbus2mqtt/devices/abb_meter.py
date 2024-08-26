@@ -72,6 +72,12 @@ class AbbMeter(Device):
         "TypeDesignation" / PaddedString(12, encoding="ASCII"),
     )
 
+    PRODUCTDATA_AND_IDENTIFICATION_TOPICS = MappingProxyType({
+        "SerialNumber": "serial_number",
+        "TypeDesignation": "product_name",
+        "MeterFirmwareVersion": "software_version",
+    })
+
     ENERGY_TOTAL = Struct(
         "ActiveImport" / Factor(0.01, Int64ub),
         "ActiveExport" / Factor(0.01, Int64ub),
@@ -226,6 +232,12 @@ class AbbMeter(Device):
 
         serial_number = parsed_productdata_and_identification.search("SerialNumber")
 
+        for name, topic in self.PRODUCTDATA_AND_IDENTIFICATION_TOPICS.items():
+            for parsed_data in [parsed_productdata_and_identification]:
+                value = parsed_data.search(rf"^{name}$")
+                if value is not None:
+                    yield {'topic': f"{serial_number}/{topic}", 'payload': value, 'retain': True}
+
         next_send = {}
 
         while True:
@@ -254,7 +266,7 @@ class AbbMeter(Device):
 
                         if now > next_send.get(topic, 0):
                             next_send[topic] = (now // interval + 1) * interval
-                            yield f"{serial_number}/{topic}", value
+                            yield {'topic': f"{serial_number}/{topic}", 'payload': value}
 
             next_wakeup = min(next_send.values())
 
