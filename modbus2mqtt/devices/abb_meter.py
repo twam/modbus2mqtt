@@ -161,10 +161,10 @@ class AbbMeter(Device):
         "PowerFactorL1" / Factor(0.001, Int16sb),
         "PowerFactorL2" / Factor(0.001, Int16sb),
         "PowerFactorL3" / Factor(0.001, Int16sb),
-        "CurrentQuandrantTotal" / Factor(1, Int16ub),
-        "CurrentQuandrantL1" / Factor(1, Int16ub),
-        "CurrentQuandrantL2" / Factor(1, Int16ub),
-        "CurrentQuandrantL3" / Factor(1, Int16ub),
+        "CurrentQuadrantTotal" / Factor(1, Int16ub),
+        "CurrentQuadrantL1" / Factor(1, Int16ub),
+        "CurrentQuadrantL2" / Factor(1, Int16ub),
+        "CurrentQuadrantL3" / Factor(1, Int16ub),
     )
 
     TOPICS = MappingProxyType({
@@ -211,6 +211,10 @@ class AbbMeter(Device):
         "PowerFactorL2": "powerfactor/L2",
         "PowerFactorL3": "powerfactor/L3",
         "Frequency": "frequency",
+        "CurrentQuadrantTotal": "currentquadrant",
+        "CurrentQuadrantL1": "currentquadrant/L1",
+        "CurrentQuadrantL2": "currentquadrant/L2",
+        "CurrentQuadrantL3": "currentquadrant/L3",
     })
 
     @staticmethod
