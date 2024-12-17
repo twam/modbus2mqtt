@@ -60,7 +60,7 @@ class Factor(Adapter):
 
 
 class AbbMeter(Device):
-    PRODUCTDATA_AND_IDENTIFICATION = Struct(
+    PRODUCTDATA_AND_IDENTIFICATION = "ProductAndIdentification" / Struct(
         "SerialNumber" / Int32ub,
         Padding(6 * 2),
         "MeterFirmwareVersion" / PaddedString(16, encoding="ASCII"),
@@ -79,7 +79,7 @@ class AbbMeter(Device):
         "MeterFirmwareVersion": "software_version",
     })
 
-    ENERGY_TOTAL = Struct(
+    ENERGY_TOTAL = "EnergyTotal" / Struct(
         "ActiveImport" / Factor(0.01, Int64ub),
         "ActiveExport" / Factor(0.01, Int64ub),
         "ActiveNet" / Factor(0.01, Int64sb),
@@ -93,7 +93,7 @@ class AbbMeter(Device):
         "ActiveImportCurrency" / Factor(0.001, Int64ub),
     )
 
-    ENERGY_PER_PHASE = Struct(
+    ENERGY_PER_PHASE = "EnergyPerPhase" / Struct(
         "ActiveImportL1" / Factor(0.01, Int64ub),
         "ActiveImportL2" / Factor(0.01, Int64ub),
         "ActiveImportL3" / Factor(0.01, Int64ub),
@@ -123,7 +123,7 @@ class AbbMeter(Device):
         "ApparentNetL3" / Factor(0.01, Int64sb),
     )
 
-    MEASUREMENTS = Struct(
+    MEASUREMENTS = "Measurements" / Struct(
         "VoltageL1N" / Factor(0.1, Int32ub),
         "VoltageL2N" / Factor(0.1, Int32ub),
         "VoltageL3N" / Factor(0.1, Int32ub),
@@ -225,15 +225,8 @@ class AbbMeter(Device):
 
     async def get_messages(self):
         try:
-            productdata_and_identification = await self.client.read_holding_registers(
-                address=0x8900, count=self.PRODUCTDATA_AND_IDENTIFICATION.sizeof() // 2, slave=self.unit,
-            )
-            parsed_productdata_and_identification = self.PRODUCTDATA_AND_IDENTIFICATION.parse(
-                bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in productdata_and_identification.registers], [])),
-            )
-
+            parsed_productdata_and_identification = await self.read_and_parse(address=0x8900, format=self.PRODUCTDATA_AND_IDENTIFICATION)
             if parsed_productdata_and_identification is None:
-                logging.error("Could not parse 'productdata_and_identification'.")
                 return
 
             serial_number = parsed_productdata_and_identification.search("SerialNumber")
@@ -244,30 +237,22 @@ class AbbMeter(Device):
                     if value is not None:
                         yield {'topic': f"{serial_number}/{topic}", 'payload': value, 'retain': True}
 
-            logging.info(f"Found ABB {parsed_productdata_and_identification['TypeDesignation']} with serial number {serial_number} at {self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port} on unit {self.unit}.")
+            logging.info(self.format_logstring(f"Found ABB {parsed_productdata_and_identification['TypeDesignation']} with serial number {serial_number}."))
 
             next_send = {}
 
             while True:
                 now = datetime.now(tz=UTC).timestamp()
 
-                energy_total = await self.client.read_holding_registers(address=0x5000, count=self.ENERGY_TOTAL.sizeof() // 2, slave=self.unit)
-                parsed_energy_total = self.ENERGY_TOTAL.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in energy_total.registers], [])))
-
-                # if self.client.ctx.comm_params.host == 'waveshare-waschkueche':
-                #     logging.info(f"{self.client.ctx.comm_params.host} {self.unit}: {parsed_energy_total['ActiveNet']}")
-
-                energy_per_phase = await self.client.read_holding_registers(
-                    address=0x5460, count=self.ENERGY_PER_PHASE.sizeof() // 2, slave=self.unit,
-                )
-                parsed_energy_per_phase = self.ENERGY_PER_PHASE.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in energy_per_phase.registers], [])))
-
-                measurements = await self.client.read_holding_registers(address=0x5B00, count=self.MEASUREMENTS.sizeof() // 2, slave=self.unit)
-                parsed_measurements = self.MEASUREMENTS.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in measurements.registers], [])))
+                containers = [x for x in [await self.read_and_parse(address=address, format=format) for (address, format) in [
+                    (0x5460, self.ENERGY_TOTAL),
+                    (0x5460, self.ENERGY_PER_PHASE),
+                    (0x5B00, self.MEASUREMENTS),
+                ]] if x is not None]
 
                 for name, topic in self.TOPICS.items():
-                    for parsed_data in [parsed_energy_total, parsed_energy_per_phase, parsed_measurements]:
-                        value = parsed_data.search(rf"^{name}$")
+                    for container in containers:
+                        value = container.search(rf"^{name}$")
                         if value is not None:
                             interval = 5
                             for topic_regex, topic_interval in self.config.get("intervals", {}).items():
@@ -279,9 +264,10 @@ class AbbMeter(Device):
                                 next_send[topic] = (now // interval + 1) * interval
                                 yield {'topic': f"{serial_number}/{topic}", 'payload': value}
 
-                next_wakeup = min(next_send.values())
+                next_wakeup = now + 1 if len(next_send) == 0 else min(next_send.values())
 
                 await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())
+
         except ModbusIOException as e:
             logging.error(f"{self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port} unit {self.unit} failed with: {e.message}")
         except ConnectionException as e:

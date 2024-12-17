@@ -3,6 +3,9 @@ import logging
 from aiomqtt import Client as MqttClient
 from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusIOException
+from construct import Construct
+from functools import reduce
+from operator import iadd
 
 
 class Device:
@@ -12,6 +15,26 @@ class Device:
         self.mqtt_client = mqtt_client
         self.mqtt_prefix = mqtt_prefix
         self.config = config
+
+    def format_logstring(self, string: str):
+        return f"{self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port}.{self.unit}: " + string
+
+    async def read_and_parse(self, address: int, format: Construct):
+        reply = await self.client.read_holding_registers(
+                address=address, count=format.sizeof() // 2, slave=self.unit,
+            )
+
+        if reply is None:
+            logging.error(self.format_logstring(f"Couldn't read {format.name} from address 0x{address:04X}"))
+            return None
+
+        parsed = format.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in reply.registers], [])),)
+
+        if parsed is None:
+            logging.error(self.format_logstring(f"Couldn't parse {format.name}."))
+            return None
+
+        return parsed
 
     async def task(self):
         while True:

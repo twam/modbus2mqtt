@@ -81,7 +81,7 @@ class GrowattInverter(Device):
 
         serial_number = parsed_holding_frame1.search("SerialNumber")
 
-        logging.info(f"Found Growatt with serial number {serial_number} at {self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port} on unit {self.unit}.")
+        logging.info(self.format_logstring(f"Found Growatt with serial number {serial_number}."))
 
         while True:
             input_frame1 = await self.client.read_input_registers(address=0, count=self.INPUT_FRAME1.sizeof() // 2, slave=self.unit)
