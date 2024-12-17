@@ -18,8 +18,8 @@ async def modbus_gateway(name: str, config: dict, mqtt_client: MqttClient, mqtt_
                     host=config["address"],
                     port=config["port"],
                     # framer=args.framer,
-                    # timeout=args.timeout,
-                    # retries=3,
+                    timeout=1,
+                    retries=0,
                     # reconnect_delay=1,
                     # reconnect_delay_max=10,
                 ) as client:
