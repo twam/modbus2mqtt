@@ -21,9 +21,6 @@ def parse_args() -> Namespace:
     parser.add_argument("-c", "--conf_file",
                         help="Specify config file", metavar="FILE", required = True, type=Path)
 
-    parser.add_argument("-d", "--daemon",
-                        help="Run as daemon", action="store_true")
-
     parser.add_argument("-v", "--verbose",
                         help="Increases log verbosity for each occurence", dest="verbose_count", action="count", default=0)
 
