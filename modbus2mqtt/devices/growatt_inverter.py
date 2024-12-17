@@ -7,18 +7,7 @@ from types import MappingProxyType
 from construct import Adapter, Int16ub, Int32ub, PaddedString, Seek, Struct, Padding
 
 from modbus2mqtt.devices import Device
-
-
-class Factor(Adapter):
-    def __init__(self, factor: float, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.factor = factor
-
-    def _decode(self, obj, context, path):
-        return obj * self.factor
-
-    def _encode(self, obj, context, path):
-        return obj / self.factor
+from modbus2mqtt.construct_types import Factor
 
 
 class GrowattInverter(Device):
@@ -91,6 +80,8 @@ class GrowattInverter(Device):
             return
 
         serial_number = parsed_holding_frame1.search("SerialNumber")
+
+        logging.info(f"Found Growatt with serial number {serial_number} at {self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port} on unit {self.unit}.")
 
         while True:
             input_frame1 = await self.client.read_input_registers(address=0, count=self.INPUT_FRAME1.sizeof() // 2, slave=self.unit)
