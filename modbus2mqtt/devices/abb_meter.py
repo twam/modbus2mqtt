@@ -245,7 +245,7 @@ class AbbMeter(Device):
                 now = datetime.now(tz=UTC).timestamp()
 
                 containers = [x for x in [await self.read_and_parse(address=address, format=format) for (address, format) in [
-                    (0x5460, self.ENERGY_TOTAL),
+                    (0x5000, self.ENERGY_TOTAL),
                     (0x5460, self.ENERGY_PER_PHASE),
                     (0x5B00, self.MEASUREMENTS),
                 ]] if x is not None]
