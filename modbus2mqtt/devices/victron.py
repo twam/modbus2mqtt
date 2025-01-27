@@ -64,8 +64,18 @@ class Victron(Device):
                 "BatteryMaxDischargeCurrent": "battery/maxdischargecurrent",
                 }
             ),
-        Variant.VEBUS: [
-        ]
+        Variant.VEBUS: VariantData(
+            register_sets=[RegisterSet(start_address=33, registers=Struct(
+                    # "Serial" / PaddedString(12, encoding="ASCII"),
+                    # Padding((843-806)*2),
+                    "SwitchPosition" / Int16ub,
+                    # "RelayState2" / Int16ub,
+                    # "Soc" / Int16ub ,       
+                ))],
+            topics={
+                "SwitchPosition": "vebus/mode",
+                }
+            ),
     }
 
     def __init__(self, *args, **kwargs):
@@ -106,6 +116,7 @@ class Victron(Device):
                         value = parsed_data.search(rf"^{name}$")
                         if value is not None:
                             yield {'topic': f"{topic}", 'payload': value}
+
             except Exception as e :
                 logging.error(f"Reading data from Variant {self.variant.name} for unit {self.unit} failed: {e}")
 
