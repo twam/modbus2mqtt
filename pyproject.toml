@@ -11,7 +11,7 @@ dependencies = [
 	"PyYAML>=6.0,<7",
 	"paho-mqtt>=1.0,<2", # asyncio-mqtt isn't working with 2, yet
 	"aiomqtt>=2.0.0,<3",
-	"pymodbus>=3.8.0,<3.9",
+	"pymodbus>=3.9.0,<3.10",
 	"construct>=2.10.70,<3",
 ]
 

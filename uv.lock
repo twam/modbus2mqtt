@@ -66,7 +66,7 @@ requires-dist = [
     { name = "aiomqtt", specifier = ">=2.0.0,<3" },
     { name = "construct", specifier = ">=2.10.70,<3" },
     { name = "paho-mqtt", specifier = ">=1.0,<2" },
-    { name = "pymodbus", specifier = ">=3.8.0,<3.9" },
+    { name = "pymodbus", specifier = ">=3.9.0,<3.10" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
 ]
 
@@ -113,11 +113,11 @@ wheels = [
 
 [[package]]
 name = "pymodbus"
-version = "3.8.6"
+version = "3.9.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/47/3a/a6958507d6f9c0c50f11cd299b056161c10f3cef7c227b44bc183a7e7854/pymodbus-3.8.6.tar.gz", hash = "sha256:7689b56cc3ad05a594e1486e772abb9d9646c01737935df492db04455680baf6", size = 162341, upload-time = "2025-02-10T11:53:24.596Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/9f/434efbc3edd1445efca2c17d24877010746d65783ddbb937de753de6bec7/pymodbus-3.9.2.tar.gz", hash = "sha256:2d08ab7bf6d1abc55a87f4faa3a7b04f74d7310b8c9771c3d66ee5fccf2e25ac", size = 163040, upload-time = "2025-04-18T15:24:36.377Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/23/8f30f094b4a00428bd3c28dd3b6a2b3715164ab85520673e197bd4bba2e7/pymodbus-3.8.6-py3-none-any.whl", hash = "sha256:b82373295fb98c9a9bf9338235240a8b2e97bcc49c0d833168cade7ba2fa90e6", size = 164366, upload-time = "2025-02-10T11:53:22.384Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/7e/ae151f2750fb604247088774634fea321a178fb898cf8e961879825f9e41/pymodbus-3.9.2-py3-none-any.whl", hash = "sha256:292dcf859d6f232c30abc9753c1f0b7804771fd9c749641b32831de01b360b30", size = 165153, upload-time = "2025-04-18T15:24:34.428Z" },
 ]
 
 [[package]]
