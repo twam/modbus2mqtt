@@ -72,7 +72,7 @@ class GrowattInverter(Device):
     })
 
     async def get_messages(self):
-        holding_frame1 = await self.client.read_holding_registers(address=3000, count=self.HOLDING_FRAME1.sizeof() // 2, slave=self.unit)
+        holding_frame1 = await self.client.read_holding_registers(address=3000, count=self.HOLDING_FRAME1.sizeof() // 2, device_id=self.unit)
         parsed_holding_frame1 = self.HOLDING_FRAME1.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in holding_frame1.registers], [])))
 
         if parsed_holding_frame1 is None:
@@ -84,7 +84,7 @@ class GrowattInverter(Device):
         logging.info(self.format_logstring(f"Found Growatt with serial number {serial_number}."))
 
         while True:
-            input_frame1 = await self.client.read_input_registers(address=0, count=self.INPUT_FRAME1.sizeof() // 2, slave=self.unit)
+            input_frame1 = await self.client.read_input_registers(address=0, count=self.INPUT_FRAME1.sizeof() // 2, device_id=self.unit)
             parsed_input_frame1 = self.INPUT_FRAME1.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in input_frame1.registers], [])))
 
             if parsed_input_frame1 is None:

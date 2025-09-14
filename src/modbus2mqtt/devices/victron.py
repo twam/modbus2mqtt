@@ -105,7 +105,7 @@ class Victron(Device):
                 parsed_data_list = []
                 for register_set in register_sets:
                     data = await self.client.read_holding_registers(
-                        address=register_set.start_address, count=register_set.registers.sizeof() // 2, slave=self.unit,
+                        address=register_set.start_address, count=register_set.registers.sizeof() // 2, device_id=self.unit,
                     )
                     parsed_data_list.append(register_set.registers.parse(
                         bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in data.registers], []))

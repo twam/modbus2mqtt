@@ -21,7 +21,7 @@ class Device:
 
     async def read_and_parse(self, address: int, format: Construct):
         reply = await self.client.read_holding_registers(
-                address=address, count=format.sizeof() // 2, slave=self.unit,
+                address=address, count=format.sizeof() // 2, device_id=self.unit,
             )
 
         if (reply is None):

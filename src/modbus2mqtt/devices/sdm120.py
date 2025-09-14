@@ -52,7 +52,7 @@ class Sdm120(Device):
 
     async def get_messages(self):
         serial_number = await self.client.read_holding_registers(
-            address=0xFC00, count=self.SERIAL_NUMBER.sizeof() // 2, slave=self.unit,
+            address=0xFC00, count=self.SERIAL_NUMBER.sizeof() // 2, device_id=self.unit,
         )
         parsed_serial_number = self.SERIAL_NUMBER.parse(
             bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in serial_number.registers], [])),
@@ -69,7 +69,7 @@ class Sdm120(Device):
         while True:
             now = datetime.now(tz=UTC).timestamp()
 
-            measurements = await self.client.read_input_registers(address=0x0000, count=self.MEASUREMENTS.sizeof() // 2, slave=self.unit)
+            measurements = await self.client.read_input_registers(address=0x0000, count=self.MEASUREMENTS.sizeof() // 2, device_id=self.unit)
             parsed_measurements = self.MEASUREMENTS.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in measurements.registers], [])))
 
             for name, topic in self.TOPICS.items():
