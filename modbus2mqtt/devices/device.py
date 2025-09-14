@@ -3,7 +3,7 @@ import logging
 from aiomqtt import Client as MqttClient
 from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusIOException
-from construct import Construct
+from construct import Construct, StreamError
 from functools import reduce
 from operator import iadd
 
@@ -24,11 +24,15 @@ class Device:
                 address=address, count=format.sizeof() // 2, slave=self.unit,
             )
 
-        if reply is None:
+        if (reply is None):
             logging.error(self.format_logstring(f"Couldn't read {format.name} from address 0x{address:04X}"))
             return None
 
-        parsed = format.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in reply.registers], [])),)
+        try:
+            parsed = format.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in reply.registers], [])),)
+        except StreamError as e:
+            logging.error(self.format_logstring(f"Couldn't parse {format.name}: {str(e)}"))
+            return None
 
         if parsed is None:
             logging.error(self.format_logstring(f"Couldn't parse {format.name}."))
