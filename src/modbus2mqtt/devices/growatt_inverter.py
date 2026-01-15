@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime, UTC
 from functools import reduce
 from operator import iadd
 from types import MappingProxyType
@@ -47,7 +48,7 @@ class GrowattInverter(Device):
 
     HOLDING_FRAME1 = Struct(Padding(1 * 2), "SerialNumber" / PaddedString(30, encoding="ASCII"))
 
-    DATAPOINTS = MappingProxyType({
+    TOPICS = MappingProxyType({
         "InputPower": "0/powerdc",
         "PV1Voltage": "1/voltage",
         "PV1InputCurrent": "1/current",
@@ -84,16 +85,17 @@ class GrowattInverter(Device):
         logging.info(self.format_logstring(f"Found Growatt with serial number {serial_number}."))
 
         while True:
-            input_frame1 = await self.client.read_input_registers(address=0, count=self.INPUT_FRAME1.sizeof() // 2, device_id=self.unit)
-            parsed_input_frame1 = self.INPUT_FRAME1.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in input_frame1.registers], [])))
+            now = datetime.now(tz=UTC).timestamp()
 
-            if parsed_input_frame1 is None:
-                logging.error("Could not parse INPUT_FRAME1.")
-                continue
-
-            for name, topic in self.DATAPOINTS.items():
-                value = parsed_input_frame1.search(rf"^{name}$")
+            containers = [x for x in [await self.read_and_parse(address=address, format=format) for (address, format) in [
+                (0x0, self.INPUT_FRAME1),
+            ]] if x is not None]
+        
+            for name, topic in self.TOPICS.items():
+                for container in containers:
+                    value = container.search(rf"^{name}$")
                 if value is not None:
                     yield {'topic': f"{serial_number}/{topic}", 'payload': value}
 
-            await asyncio.sleep(5)
+            next_wakeup = (int(now / 10) + 1) * 10
+            await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())
