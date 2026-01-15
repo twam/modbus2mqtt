@@ -19,8 +19,16 @@ class Device:
     def format_logstring(self, string: str):
         return f"{self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port}.{self.unit}: " + string
 
-    async def read_and_parse(self, address: int, format: Construct):
-        reply = await self.client.read_holding_registers(
+    async def read_and_parse(self, address: int, format: Construct, register_type = 'holding'):
+        if register_type == 'holding':
+            read_function = self.client.read_holding_registers
+        elif register_type == 'input':
+            read_function = self.client.read_input_registers
+        else:
+            logging.error(self.format_logstring(f"Unknown register type '{register_type}'"))
+            return None
+
+        reply = await read_function(
                 address=address, count=format.sizeof() // 2, device_id=self.unit,
             )
 

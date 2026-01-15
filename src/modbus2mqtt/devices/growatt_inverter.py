@@ -87,10 +87,12 @@ class GrowattInverter(Device):
         while True:
             now = datetime.now(tz=UTC).timestamp()
 
-            containers = [x for x in [await self.read_and_parse(address=address, format=format) for (address, format) in [
+            containers = [x for x in [await self.read_and_parse(address=address, format=format, register_type='input') for (address, format) in [
                 (0x0, self.INPUT_FRAME1),
             ]] if x is not None]
         
+            logging.debug(self.format_logstring(f"Containers: {containers}"))
+
             for name, topic in self.TOPICS.items():
                 for container in containers:
                     value = container.search(rf"^{name}$")
