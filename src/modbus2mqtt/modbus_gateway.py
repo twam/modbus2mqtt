@@ -20,6 +20,7 @@ async def modbus_gateway(name: str, config: dict, mqtt_client: MqttClient, mqtt_
                     # framer=args.framer,
                     timeout=config.get("timeout", 3),
                     retries=config.get("retries", 0),
+                    name=name,
                     # reconnect_delay=1,
                     # reconnect_delay_max=10,
                 ) as client:
