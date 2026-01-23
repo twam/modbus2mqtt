@@ -10,6 +10,9 @@ from modbus2mqtt.exceptions import InvalidConfigurationError
 from modbus2mqtt.util import to_camel_case
 
 
+# TODO use prefix adapter
+# TODO make a class
+
 async def modbus_gateway(name: str, config: dict, mqtt_client: MqttClient, mqtt_prefix: str, classes_config: dict):
     while True:
         try:
@@ -58,11 +61,15 @@ async def modbus_gateway(name: str, config: dict, mqtt_client: MqttClient, mqtt_
                                 tg.create_task(device.task())
 
                     else:
-                        logging.warning(f"Couldn't connect to gateway {name} at {config['address']}:{config['port']}. Retrying in 1 second.")
+                        logging.warning(
+                            f"Couldn't connect to gateway {name} at {config['address']}:{config['port']}. Retrying in 1 second."
+                        )
                         await asyncio.sleep(1)
 
             except* ConnectionException as e:
-                logging.warning(f"Connection to gateway {name} at {config['address']}:{config['port']} failed with {e}. Retrying in 1 second.")
+                logging.warning(
+                    f"Connection to gateway {name} at {config['address']}:{config['port']} failed with {e}. Retrying in 1 second."
+                )
                 await asyncio.sleep(1)
 
         except ConnectionException as e:

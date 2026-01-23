@@ -8,7 +8,8 @@ from types import MappingProxyType
 
 from construct import Adapter, Byte, Int16sb, Int16ub, Int32sb, Int32ub, Int64sb, Int64ub, PaddedString, Padding, Struct
 
-from modbus2mqtt.devices import Device
+from modbus2mqtt.device import Device
+from modbus2mqtt.modbus import RegisterSet
 from pymodbus.exceptions import ModbusIOException, ConnectionException
 
 
@@ -73,11 +74,13 @@ class AbbMeter(Device):
         "TypeDesignation" / PaddedString(12, encoding="ASCII"),
     )
 
-    PRODUCTDATA_AND_IDENTIFICATION_TOPICS = MappingProxyType({
-        "SerialNumber": "serial_number",
-        "TypeDesignation": "product_name",
-        "MeterFirmwareVersion": "software_version",
-    })
+    PRODUCTDATA_AND_IDENTIFICATION_TOPICS = MappingProxyType(
+        {
+            "SerialNumber": "serial_number",
+            "TypeDesignation": "product_name",
+            "MeterFirmwareVersion": "software_version",
+        }
+    )
 
     ENERGY_TOTAL = "EnergyTotal" / Struct(
         "ActiveImport" / Factor(0.01, Int64ub),
@@ -168,108 +171,67 @@ class AbbMeter(Device):
         "CurrentQuadrantL3" / Factor(1, Int16ub),
     )
 
-    TOPICS = MappingProxyType({
-        "ActiveImport": "energy/import",
-        "ActiveExport": "energy/export",
-        "ActiveNet": "energy/net",
-        "ActiveImportL1": "energy/import/L1",
-        "ActiveImportL2": "energy/import/L2",
-        "ActiveImportL3": "energy/import/L3",
-        "ActiveExportL1": "energy/export/L1",
-        "ActiveExportL2": "energy/export/L2",
-        "ActiveExportL3": "energy/export/L3",
-        "ActiveNetL1": "energy/net/L1",
-        "ActiveNetL2": "energy/net/L2",
-        "ActiveNetL3": "energy/net/L3",
-        "ReactiveImport": "reactiveenergy/import",
-        "ReactiveExport": "reactiveenergy/export",
-        "ReactiveNet": "reactiveenergy/net",
-        "ReactiveImportL1": "reactiveenergy/import/L1",
-        "ReactiveImportL2": "reactiveenergy/import/L2",
-        "ReactiveImportL3": "reactiveenergy/import/L3",
-        "ReactiveExportL1": "reactiveenergy/export/L1",
-        "ReactiveExportL2": "reactiveenergy/export/L2",
-        "ReactiveExportL3": "reactiveenergy/export/L3",
-        "ReactiveNetL1": "reactiveenergy/net/L1",
-        "ReactiveNetL2": "reactiveenergy/net/L2",
-        "ReactiveNetL3": "reactiveenergy/net/L3",
-        "VoltageL1N": "voltage/L1",
-        "VoltageL2N": "voltage/L2",
-        "VoltageL3N": "voltage/L3",
-        "CurrentL1": "current/L1",
-        "CurrentL2": "current/L2",
-        "CurrentL3": "current/L3",
-        "ActivePowerTotal": "power",
-        "ActivePowerL1": "power/L1",
-        "ActivePowerL2": "power/L2",
-        "ActivePowerL3": "power/L3",
-        "ReactivePowerTotal": "reactivepower",
-        "ReactivePowerL1": "reactivepower/L1",
-        "ReactivePowerL2": "reactivepower/L2",
-        "ReactivePowerL3": "reactivepower/L3",
-        "PowerFactorTotal": "powerfactor",
-        "PowerFactorL1": "powerfactor/L1",
-        "PowerFactorL2": "powerfactor/L2",
-        "PowerFactorL3": "powerfactor/L3",
-        "Frequency": "frequency",
-        "CurrentQuadrantTotal": "currentquadrant",
-        "CurrentQuadrantL1": "currentquadrant/L1",
-        "CurrentQuadrantL2": "currentquadrant/L2",
-        "CurrentQuadrantL3": "currentquadrant/L3",
-    })
+    TOPICS = MappingProxyType(
+        {
+            "SerialNumber": "serial_number",
+            "TypeDesignation": "product_name",
+            "MeterFirmwareVersion": "software_version",
+            "ActiveImport": "energy/import",
+            "ActiveExport": "energy/export",
+            "ActiveNet": "energy/net",
+            "ActiveImportL1": "energy/import/L1",
+            "ActiveImportL2": "energy/import/L2",
+            "ActiveImportL3": "energy/import/L3",
+            "ActiveExportL1": "energy/export/L1",
+            "ActiveExportL2": "energy/export/L2",
+            "ActiveExportL3": "energy/export/L3",
+            "ActiveNetL1": "energy/net/L1",
+            "ActiveNetL2": "energy/net/L2",
+            "ActiveNetL3": "energy/net/L3",
+            "ReactiveImport": "reactiveenergy/import",
+            "ReactiveExport": "reactiveenergy/export",
+            "ReactiveNet": "reactiveenergy/net",
+            "ReactiveImportL1": "reactiveenergy/import/L1",
+            "ReactiveImportL2": "reactiveenergy/import/L2",
+            "ReactiveImportL3": "reactiveenergy/import/L3",
+            "ReactiveExportL1": "reactiveenergy/export/L1",
+            "ReactiveExportL2": "reactiveenergy/export/L2",
+            "ReactiveExportL3": "reactiveenergy/export/L3",
+            "ReactiveNetL1": "reactiveenergy/net/L1",
+            "ReactiveNetL2": "reactiveenergy/net/L2",
+            "ReactiveNetL3": "reactiveenergy/net/L3",
+            "VoltageL1N": "voltage/L1",
+            "VoltageL2N": "voltage/L2",
+            "VoltageL3N": "voltage/L3",
+            "CurrentL1": "current/L1",
+            "CurrentL2": "current/L2",
+            "CurrentL3": "current/L3",
+            "ActivePowerTotal": "power",
+            "ActivePowerL1": "power/L1",
+            "ActivePowerL2": "power/L2",
+            "ActivePowerL3": "power/L3",
+            "ReactivePowerTotal": "reactivepower",
+            "ReactivePowerL1": "reactivepower/L1",
+            "ReactivePowerL2": "reactivepower/L2",
+            "ReactivePowerL3": "reactivepower/L3",
+            "PowerFactorTotal": "powerfactor",
+            "PowerFactorL1": "powerfactor/L1",
+            "PowerFactorL2": "powerfactor/L2",
+            "PowerFactorL3": "powerfactor/L3",
+            "Frequency": "frequency",
+            "CurrentQuadrantTotal": "currentquadrant",
+            "CurrentQuadrantL1": "currentquadrant/L1",
+            "CurrentQuadrantL2": "currentquadrant/L2",
+            "CurrentQuadrantL3": "currentquadrant/L3",
+        }
+    )
 
-    @staticmethod
-    async def _wait_until(dt: datetime):
-        now = datetime.now(tz=UTC)
-        await asyncio.sleep((dt - now).total_seconds())
+    STATIC_REGISTERS: list[RegisterSet] = [
+        RegisterSet(address=0x8900, format=PRODUCTDATA_AND_IDENTIFICATION),
+    ]
 
-    async def get_messages(self):
-        try:
-            parsed_productdata_and_identification = await self.read_and_parse(address=0x8900, format=self.PRODUCTDATA_AND_IDENTIFICATION)
-            if parsed_productdata_and_identification is None:
-                return
-
-            serial_number = parsed_productdata_and_identification.search("SerialNumber")
-
-            for name, topic in self.PRODUCTDATA_AND_IDENTIFICATION_TOPICS.items():
-                for parsed_data in [parsed_productdata_and_identification]:
-                    value = parsed_data.search(rf"^{name}$")
-                    if value is not None:
-                        yield {'topic': f"{serial_number}/{topic}", 'payload': value, 'retain': True}
-
-            logging.info(self.format_logstring(f"Found ABB {parsed_productdata_and_identification['TypeDesignation']} with serial number {serial_number}."))
-
-            next_send = {}
-
-            while True:
-                now = datetime.now(tz=UTC).timestamp()
-
-                containers = [x for x in [await self.read_and_parse(address=address, format=format) for (address, format) in [
-                    (0x5000, self.ENERGY_TOTAL),
-                    (0x5460, self.ENERGY_PER_PHASE),
-                    (0x5B00, self.MEASUREMENTS),
-                ]] if x is not None]
-
-                for name, topic in self.TOPICS.items():
-                    for container in containers:
-                        value = container.search(rf"^{name}$")
-                        if value is not None:
-                            interval = 5
-                            for topic_regex, topic_interval in self.config.get("intervals", {}).items():
-                                if re.match(topic_regex, topic):
-                                    interval = topic_interval
-                                    break
-
-                            if now > next_send.get(topic, 0):
-                                next_send[topic] = (now // interval + 1) * interval
-                                yield {'topic': f"{serial_number}/{topic}", 'payload': value}
-
-                next_wakeup = now + 1 if len(next_send) == 0 else min(next_send.values())
-
-                await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())
-
-        except ModbusIOException as e:
-            logging.error(f"{self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port} unit {self.unit} failed with: {e.message}")
-        except ConnectionException as e:
-            logging.error(f"Connection to {self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port} unit {self.unit} failed. Retrying in 5 s.")
-            await asyncio.sleep(5)
+    DYNAMIC_REGISTERS: list[RegisterSet] = [
+        RegisterSet(address=0x5000, format=ENERGY_TOTAL),
+        RegisterSet(address=0x5460, format=ENERGY_PER_PHASE),
+        RegisterSet(address=0x5B00, format=MEASUREMENTS),
+    ]

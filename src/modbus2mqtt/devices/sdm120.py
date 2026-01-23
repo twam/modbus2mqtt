@@ -8,7 +8,8 @@ from types import MappingProxyType
 
 from construct import Float32b, Int32ub, Padding, Struct
 
-from modbus2mqtt.devices import Device
+from modbus2mqtt.device import Device
+from modbus2mqtt.modbus import RegisterSet
 
 
 class Sdm120(Device):
@@ -34,58 +35,69 @@ class Sdm120(Device):
         "ActiveExpoert" / Float32b,
         "ReactiveImport" / Float32b,
         "ReactiveExpoert" / Float32b,
-        )
+    )
 
-    TOPICS = MappingProxyType({
-        "ActiveImport": "energy/import",
-        "ActiveExport": "energy/export",
-        "Voltage": "voltage",
-        "Current": "current",
-        "ActivePower": "power",
-        "Frequency": "frequency",
-    })
+    TOPICS = MappingProxyType(
+        {
+            "SerialNumber": "serial_number",
+            "ActiveImport": "energy/import",
+            "ActiveExport": "energy/export",
+            "Voltage": "voltage",
+            "Current": "current",
+            "ActivePower": "power",
+            "Frequency": "frequency",
+        }
+    )
 
-    @staticmethod
-    async def _wait_until(dt: datetime):
-        now = datetime.now(tz=UTC)
-        await asyncio.sleep((dt - now).total_seconds())
+    STATIC_REGISTERS = [
+        RegisterSet(address=0xFC00, format=SERIAL_NUMBER),
+    ]
 
-    async def get_messages(self):
-        serial_number = await self.client.read_holding_registers(
-            address=0xFC00, count=self.SERIAL_NUMBER.sizeof() // 2, device_id=self.unit,
-        )
-        parsed_serial_number = self.SERIAL_NUMBER.parse(
-            bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in serial_number.registers], [])),
-        )
+    DYNAMIC_REGISTERS = [
+        RegisterSet(address=0x0000, format=MEASUREMENTS),
+    ]
 
-        if parsed_serial_number is None:
-            logging.error("Could not parse 'serial_number'.")
-            return
+    # @staticmethod
+    # async def _wait_until(dt: datetime):
+    #     now = datetime.now(tz=UTC)
+    #     await asyncio.sleep((dt - now).total_seconds())
 
-        serial_number = parsed_serial_number.search("SerialNumber")
+    # async def get_messages(self):
+    #     serial_number = await self.client.read_holding_registers(
+    #         address=0xFC00, count=self.SERIAL_NUMBER.sizeof() // 2, device_id=self.unit,
+    #     )
+    #     parsed_serial_number = self.SERIAL_NUMBER.parse(
+    #         bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in serial_number.registers], [])),
+    #     )
 
-        next_send = {}
+    #     if parsed_serial_number is None:
+    #         logging.error("Could not parse 'serial_number'.")
+    #         return
 
-        while True:
-            now = datetime.now(tz=UTC).timestamp()
+    #     serial_number = parsed_serial_number.search("SerialNumber")
 
-            measurements = await self.client.read_input_registers(address=0x0000, count=self.MEASUREMENTS.sizeof() // 2, device_id=self.unit)
-            parsed_measurements = self.MEASUREMENTS.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in measurements.registers], [])))
+    #     next_send = {}
 
-            for name, topic in self.TOPICS.items():
-                for parsed_data in [parsed_measurements]:
-                    value = parsed_data.search(rf"^{name}$")
-                    if value is not None:
-                        interval = 5
-                        for topic_regex, topic_interval in self.config.get("intervals", {}).items():
-                            if re.match(topic_regex, topic):
-                                interval = topic_interval
-                                break
+    #     while True:
+    #         now = datetime.now(tz=UTC).timestamp()
 
-                        if now > next_send.get(topic, 0):
-                            next_send[topic] = (now // interval + 1) * interval
-                            yield {'topic': f"{serial_number}/{topic}", 'payload': value}
+    #         measurements = await self.client.read_input_registers(address=0x0000, count=self.MEASUREMENTS.sizeof() // 2, device_id=self.unit)
+    #         parsed_measurements = self.MEASUREMENTS.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in measurements.registers], [])))
 
-            next_wakeup = min(next_send.values())
+    #         for name, topic in self.TOPICS.items():
+    #             for parsed_data in [parsed_measurements]:
+    #                 value = parsed_data.search(rf"^{name}$")
+    #                 if value is not None:
+    #                     interval = 5
+    #                     for topic_regex, topic_interval in self.config.get("intervals", {}).items():
+    #                         if re.match(topic_regex, topic):
+    #                             interval = topic_interval
+    #                             break
 
-            await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())
+    #                     if now > next_send.get(topic, 0):
+    #                         next_send[topic] = (now // interval + 1) * interval
+    #                         yield {'topic': f"{serial_number}/{topic}", 'payload': value}
+
+    #         next_wakeup = min(next_send.values())
+
+    #         await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())

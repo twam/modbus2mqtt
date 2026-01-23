@@ -7,8 +7,9 @@ from types import MappingProxyType
 
 from construct import Adapter, Int16ub, Int32ub, PaddedString, Seek, Struct, Padding
 
-from modbus2mqtt.devices import Device
+from modbus2mqtt.device import Device
 from modbus2mqtt.construct_types import Factor
+from modbus2mqtt.modbus import RegisterSet, RegisterType
 
 
 class GrowattInverter(Device):
@@ -48,56 +49,37 @@ class GrowattInverter(Device):
 
     HOLDING_FRAME1 = Struct(Padding(1 * 2), "SerialNumber" / PaddedString(30, encoding="ASCII"))
 
-    TOPICS = MappingProxyType({
-        "InputPower": "0/powerdc",
-        "PV1Voltage": "1/voltage",
-        "PV1InputCurrent": "1/current",
-        "PV1InputPower": "1/power",
-        "PV2Voltage": "2/voltage",
-        "PV2InputCurrent": "2/current",
-        "PV2InputPower": "2/power",
-        #            "OutputPower": "0/power",
-        "GridFrequency": "0/frequency",
-        "L1ThreePhaseGridVoltage": "0/voltage",
-        "L1ThreePhaseGridOutputCurrent": "0/current",
-        "L1ThreePhaseGridOutputPower": "0/power",
-        "TodayGenerateEnergy": "0/yieldday",
-        "TotalGenerateEnergy": "0/yieldtotal",
-        "InverterTemperature": "0/temperature",
-        "PV1EnergyToday": "1/yieldday",
-        "PV1EnergyTotal": "1/yieldtotal",
-        "PV2EnergyToday": "2/yieldday",
-        "PV2EnergyTotal": "2/yieldtotal",
-        # "FaultMainCode": "",
-        # "FaultSubCode": "",
-    })
+    TOPICS = MappingProxyType(
+        {
+            "SerialNumber": "serial_number",
+            "InputPower": "0/powerdc",
+            "PV1Voltage": "1/voltage",
+            "PV1InputCurrent": "1/current",
+            "PV1InputPower": "1/power",
+            "PV2Voltage": "2/voltage",
+            "PV2InputCurrent": "2/current",
+            "PV2InputPower": "2/power",
+            #            "OutputPower": "0/power",
+            "GridFrequency": "0/frequency",
+            "L1ThreePhaseGridVoltage": "0/voltage",
+            "L1ThreePhaseGridOutputCurrent": "0/current",
+            "L1ThreePhaseGridOutputPower": "0/power",
+            "TodayGenerateEnergy": "0/yieldday",
+            "TotalGenerateEnergy": "0/yieldtotal",
+            "InverterTemperature": "0/temperature",
+            "PV1EnergyToday": "1/yieldday",
+            "PV1EnergyTotal": "1/yieldtotal",
+            "PV2EnergyToday": "2/yieldday",
+            "PV2EnergyTotal": "2/yieldtotal",
+            # "FaultMainCode": "",
+            # "FaultSubCode": "",
+        }
+    )
 
-    async def get_messages(self):
-        holding_frame1 = await self.client.read_holding_registers(address=3000, count=self.HOLDING_FRAME1.sizeof() // 2, device_id=self.unit)
-        parsed_holding_frame1 = self.HOLDING_FRAME1.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in holding_frame1.registers], [])))
+    STATIC_REGISTERS = [
+        RegisterSet(address=3000, format=HOLDING_FRAME1),
+    ]
 
-        if parsed_holding_frame1 is None:
-            logging.error("Could not parse HOLDING_FRAME1.")
-            return
-
-        serial_number = parsed_holding_frame1.search("SerialNumber")
-
-        logging.info(self.format_logstring(f"Found Growatt with serial number {serial_number}."))
-
-        while True:
-            now = datetime.now(tz=UTC).timestamp()
-
-            containers = [x for x in [await self.read_and_parse(address=address, format=format, register_type='input') for (address, format) in [
-                (0x0, self.INPUT_FRAME1),
-            ]] if x is not None]
-        
-            logging.debug(self.format_logstring(f"Containers: {containers}"))
-
-            for name, topic in self.TOPICS.items():
-                for container in containers:
-                    value = container.search(rf"^{name}$")
-                if value is not None:
-                    yield {'topic': f"{serial_number}/{topic}", 'payload': value}
-
-            next_wakeup = (int(now / 10) + 1) * 10
-            await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())
+    DYNAMIC_REGISTERS = [
+        RegisterSet(address=0x0, format=INPUT_FRAME1, register_type=RegisterType.INPUT),
+    ]
