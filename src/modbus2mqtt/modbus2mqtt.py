@@ -3,6 +3,7 @@ import logging
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from pathlib import Path
 
+from asyncio import TaskGroup, sleep, run
 from aiomqtt import Client as MqttClient
 from aiomqtt import MqttError
 
@@ -49,7 +50,7 @@ async def async_main() -> int:
             ) as mqtt_client:
                 mqtt_prefix = config["mqtt"].get("prefix", "")
 
-                async with asyncio.TaskGroup() as tg:
+                async with TaskGroup() as tg:
                     for name, gateway_config in config["modbus"]["gateways"].items():
                         tg.create_task(
                             modbus_gateway(
@@ -65,7 +66,7 @@ async def async_main() -> int:
 
         except MqttError as error:
             logging.error(f'Error "{error}". Reconnecting in 1 seconds.')
-            await asyncio.sleep(1)
+            await sleep(1)
 
         except Exception as e:
             logging.error("Exception not handled", exc_info=True)
@@ -73,7 +74,7 @@ async def async_main() -> int:
 
 
 def main() -> int:
-    return asyncio.run(async_main())
+    return run(async_main())
 
 
 if __name__ == "__main__":

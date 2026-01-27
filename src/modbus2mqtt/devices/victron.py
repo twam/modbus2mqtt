@@ -121,36 +121,3 @@ class Victron(Device):
     @property
     def prefix(self) -> str:
         return ""
-
-    # async def get_messages(self):
-    #     register_sets = self.VARIANT_DATA[self.variant].register_sets
-    #     topics = self.VARIANT_DATA[self.variant].topics
-
-    #     while True:
-    #         now = datetime.now(tz=UTC).timestamp()
-
-    #         try:
-    #             parsed_data_list = []
-    #             for register_set in register_sets:
-    #                 data = await self.client.read_holding_registers(
-    #                     address=register_set.start_address,
-    #                     count=register_set.registers.sizeof() // 2,
-    #                     device_id=self.unit,
-    #                 )
-    #                 parsed_data_list.append(
-    #                     register_set.registers.parse(bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in data.registers], [])))
-    #                 )
-
-    #             for name, topic in topics.items():
-    #                 for parsed_data in parsed_data_list:
-    #                     value = parsed_data.search(rf"^{name}$")
-    #                     if value is not None:
-    #                         yield {"topic": f"{topic}", "payload": value}
-
-    #         except Exception as e:
-    #             logging.error(f"Reading data from Variant {self.variant.name} for unit {self.unit} failed: {e}")
-
-    #         next_wakeup = now + 1
-    #         await asyncio.sleep(next_wakeup - datetime.now(tz=UTC).timestamp())
-
-    #     return

@@ -62,7 +62,7 @@ class Device:
 
         return self._prefix
 
-    async def read_and_parse(self, address: int, format: Construct, register_type: RegisterType = RegisterType.HOLDING):
+    async def read_registers(self, address: int, count: int, device_id: int, register_type: RegisterType = RegisterType.HOLDING):
         if register_type == RegisterType.HOLDING:
             read_function = self.client.read_holding_registers
         elif register_type == RegisterType.INPUT:
@@ -70,11 +70,19 @@ class Device:
         else:
             raise ValueError(f"Unsupported register type '{register_type}'")
 
-        reply = await read_function(
-            address=address,
-            count=format.sizeof() // 2,
-            device_id=self.unit,
-        )
+        return await read_function(address=address, count=count, device_id=device_id)
+
+    async def read_and_parse(self, address: int, format: Construct, register_type: RegisterType = RegisterType.HOLDING):
+        try:
+            reply = await self.read_registers(
+                address=address,
+                count=format.sizeof() // 2,
+                device_id=self.unit,
+                register_type=register_type,
+            )
+        except ModbusIOException as e:
+            self.log.error(f"Modbus IO exception while reading {format.name} from address 0x{address:04X}: {e.message}")
+            return None
 
         if reply is None:
             self.log.error(f"Couldn't read {format.name} from address 0x{address:04X}")

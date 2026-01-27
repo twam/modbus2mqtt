@@ -1,7 +1,7 @@
-import asyncio
 import importlib
 import logging
 
+from asyncio import TaskGroup, sleep
 from aiomqtt import Client as MqttClient
 from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.exceptions import ConnectionException
@@ -34,7 +34,7 @@ async def modbus_gateway(name: str, config: dict, mqtt_client: MqttClient, mqtt_
                             logging.info(f"No devices defined for gateway {name}.")
                             return
 
-                        async with asyncio.TaskGroup() as tg:
+                        async with TaskGroup() as tg:
                             for unit, device_config in config.get("devices").items():
                                 try:
                                     module = importlib.import_module(f".devices.{device_config['class']}", __package__)
@@ -64,17 +64,17 @@ async def modbus_gateway(name: str, config: dict, mqtt_client: MqttClient, mqtt_
                         logging.warning(
                             f"Couldn't connect to gateway {name} at {config['address']}:{config['port']}. Retrying in 1 second."
                         )
-                        await asyncio.sleep(1)
+                        await sleep(1)
 
             except* ConnectionException as e:
                 logging.warning(
                     f"Connection to gateway {name} at {config['address']}:{config['port']} failed with {e}. Retrying in 1 second."
                 )
-                await asyncio.sleep(1)
+                await sleep(1)
 
         except ConnectionException as e:
             logging.warning(f"Connection to gateway {name} at {config['address']}:{config['port']} failed with {e}. Retrying in 1 second.")
-            await asyncio.sleep(1)
+            await sleep(1)
 
         except asyncio.CancelledError:
             logging.info(f"Task for gateway {name} cancelled.")
