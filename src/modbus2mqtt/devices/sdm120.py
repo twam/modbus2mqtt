@@ -26,9 +26,9 @@ class Sdm120(Device):
         Padding(0x26 * 2),
         "Frequency" / Float32b,
         "ActiveImport" / Float32b,
-        "ActiveExpoert" / Float32b,
+        "ActiveExport" / Float32b,
         "ReactiveImport" / Float32b,
-        "ReactiveExpoert" / Float32b,
+        "ReactiveExport" / Float32b,
     )
 
     TOPICS = MappingProxyType(
@@ -36,6 +36,8 @@ class Sdm120(Device):
             "SerialNumber": "serial_number",
             "ActiveImport": "energy/import",
             "ActiveExport": "energy/export",
+            "ReactiveImport": "reactiveenergy/import",
+            "ReactiveExport": "reactiveenergy/export",
             "Voltage": "voltage",
             "Current": "current",
             "ActivePower": "power",
