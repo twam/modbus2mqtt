@@ -1,15 +1,9 @@
-import asyncio
-import logging
-import re
-from datetime import UTC, datetime
-from functools import reduce
-from operator import iadd
 from types import MappingProxyType
 
-from construct import Float32b, Int32ub, Padding, Struct
+from construct import Construct, Float32b, Int32ub, Padding, Struct
 
 from modbus2mqtt.device import Device
-from modbus2mqtt.modbus import RegisterSet
+from modbus2mqtt.modbus import RegisterSet, RegisterType
 
 
 class Sdm120(Device):
@@ -54,5 +48,5 @@ class Sdm120(Device):
     ]
 
     DYNAMIC_REGISTERS = [
-        RegisterSet(address=0x0000, format=MEASUREMENTS),
+        RegisterSet(address=0x0000, format=MEASUREMENTS, register_type=RegisterType.INPUT),
     ]
