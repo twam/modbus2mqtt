@@ -193,3 +193,10 @@ See `config.yaml.sample` for a full example. Key sections:
 
 Version is declared in `pyproject.toml` under `[project]` and surfaced at runtime
 via `importlib.metadata.version(__name__)`.
+
+## API Stability
+
+`modbus2mqtt` is intended to be installed and run as a command-line utility. No
+other Python packages depend on it, so internal Python APIs do not need to remain
+stable between releases. When making changes, prefer simplicity and maintainability
+over preserving backwards compatibility for internal interfaces.
