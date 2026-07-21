@@ -9,8 +9,7 @@ license = "MIT"
 requires-python = ">=3.14"
 dependencies = [
 	"PyYAML>=6.0,<7",
-	"paho-mqtt>=1.0,<2", # asyncio-mqtt isn't working with 2, yet
-	"aiomqtt>=2.0.0,<3",
+	"aiomqtt>=2.3,<3",
 	"pymodbus>=3.11.0,<3.12",
 	"construct>=2.10.70,<3",
 ]

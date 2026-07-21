@@ -1,6 +1,7 @@
 from types import MappingProxyType
+from typing import ClassVar
 
-from construct import Construct, Float32b, Int32ub, Padding, Struct
+from construct import Float32b, Int32ub, Padding, Struct
 
 from modbus2mqtt.device import Device
 from modbus2mqtt.modbus import RegisterSet, RegisterType
@@ -45,10 +46,10 @@ class Sdm120(Device):
         }
     )
 
-    STATIC_REGISTERS = [
+    STATIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0xFC00, format=SERIAL_NUMBER),
     ]
 
-    DYNAMIC_REGISTERS = [
+    DYNAMIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0x0000, format=MEASUREMENTS, register_type=RegisterType.INPUT),
     ]

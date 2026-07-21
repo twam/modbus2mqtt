@@ -170,8 +170,8 @@ See `config.yaml.sample` for a full example. Key sections:
 ## Dependencies of Note
 
 - `pymodbus>=3.11.0,<3.12` for Modbus/TCP client support.
-- `aiomqtt>=2.0.0,<3` for MQTT publishing.
-- `paho-mqtt>=1.0,<2` is pinned because `aiomqtt` v2 depends on it.
+- `aiomqtt>=2.3,<3` for MQTT publishing.
+- `paho-mqtt` is a transitive dependency of `aiomqtt`; it is no longer a direct dependency.
 - `construct>=2.10.70,<3` for declarative binary data parsing.
 - `PyYAML>=6.0,<7` for configuration loading.
 

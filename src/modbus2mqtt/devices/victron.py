@@ -1,22 +1,15 @@
-import asyncio
-import logging
-import re
-from datetime import UTC, datetime
+from dataclasses import dataclass, field
 from enum import Enum, auto
-from functools import reduce
-from operator import iadd
 from types import MappingProxyType
-from collections import namedtuple
+from typing import ClassVar
 
+from construct import Int16sb, Int16ub, PaddedString, Padding, Struct
 
-from construct import Adapter, Byte, Int16sb, Int16ub, Int32sb, Int32ub, Int64sb, Int64ub, PaddedString, Padding, Struct
-
+from modbus2mqtt.construct_types import Factor
 from modbus2mqtt.device import Device
 from modbus2mqtt.exceptions import InvalidConfigurationError
-from modbus2mqtt.construct_types import Factor
 from modbus2mqtt.modbus import RegisterSet
 
-from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class VariantData:
@@ -32,7 +25,7 @@ class Variant(Enum):
 
 
 class Victron(Device):
-    VARIANT_DATA = {
+    VARIANT_DATA: ClassVar[dict] = {
         Variant.SYSTEM: VariantData(
             dynamic_registers=[
                 RegisterSet(
@@ -69,15 +62,17 @@ class Victron(Device):
                     ),
                 ),
             ],
-            topics=MappingProxyType({
-                "BatteryPower": "battery/power",
-                "BatteryVoltage": "battery/voltage",
-                "BatteryCurrent": "battery/current",
-                "BatteryTemperature": "battery/temperature",
-                "BatteryStateOfCharge": "battery/stateofcharge",
-                "BatteryMaxChargeCurrent": "battery/maxchargecurrent",
-                "BatteryMaxDischargeCurrent": "battery/maxdischargecurrent",
-            }),
+            topics=MappingProxyType(
+                {
+                    "BatteryPower": "battery/power",
+                    "BatteryVoltage": "battery/voltage",
+                    "BatteryCurrent": "battery/current",
+                    "BatteryTemperature": "battery/temperature",
+                    "BatteryStateOfCharge": "battery/stateofcharge",
+                    "BatteryMaxChargeCurrent": "battery/maxchargecurrent",
+                    "BatteryMaxDischargeCurrent": "battery/maxdischargecurrent",
+                }
+            ),
         ),
         Variant.VEBUS: VariantData(
             dynamic_registers=[
@@ -92,9 +87,11 @@ class Victron(Device):
                     ),
                 )
             ],
-            topics=MappingProxyType({
-                "SwitchPosition": "vebus/mode",
-            }),
+            topics=MappingProxyType(
+                {
+                    "SwitchPosition": "vebus/mode",
+                }
+            ),
         ),
     }
 

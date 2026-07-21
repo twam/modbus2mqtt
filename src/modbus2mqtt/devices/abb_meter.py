@@ -1,16 +1,10 @@
-import asyncio
-import logging
-import re
-from datetime import UTC, datetime
-from functools import reduce
-from operator import iadd
 from types import MappingProxyType
+from typing import ClassVar
 
 from construct import Adapter, Byte, Int16sb, Int16ub, Int32sb, Int32ub, Int64sb, Int64ub, PaddedString, Padding, Struct
 
 from modbus2mqtt.device import Device
 from modbus2mqtt.modbus import RegisterSet
-from pymodbus.exceptions import ModbusIOException, ConnectionException
 
 
 class Factor(Adapter):
@@ -226,11 +220,11 @@ class AbbMeter(Device):
         }
     )
 
-    STATIC_REGISTERS: list[RegisterSet] = [
+    STATIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0x8900, format=PRODUCTDATA_AND_IDENTIFICATION),
     ]
 
-    DYNAMIC_REGISTERS: list[RegisterSet] = [
+    DYNAMIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0x5000, format=ENERGY_TOTAL),
         RegisterSet(address=0x5460, format=ENERGY_PER_PHASE),
         RegisterSet(address=0x5B00, format=MEASUREMENTS),

@@ -1,22 +1,25 @@
 import logging
 import re
-from aiomqtt import Client as MqttClient
-from pymodbus.client import AsyncModbusTcpClient
-from pymodbus.exceptions import ConnectionException, ModbusIOException
-from construct import Construct, StreamError
+from asyncio import sleep
+from datetime import UTC, datetime
 from functools import reduce
 from operator import iadd
-from modbus2mqtt.modbus import RegisterType, RegisterSet
-from modbus2mqtt.logging import PrefixAdapter
 from types import MappingProxyType
-from datetime import UTC, datetime
-from asyncio import sleep
+from typing import ClassVar
+
+from aiomqtt import Client as MqttClient
+from construct import Construct, StreamError
+from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.exceptions import ConnectionException, ModbusIOException
+
+from modbus2mqtt.logging import PrefixAdapter
+from modbus2mqtt.modbus import RegisterSet, RegisterType
 
 
 class Device:
-    STATIC_REGISTERS: list[RegisterSet] = []
-    DYNAMIC_REGISTERS: list[RegisterSet] = []
-    TOPICS = MappingProxyType({})
+    STATIC_REGISTERS: ClassVar[list[RegisterSet]] = []
+    DYNAMIC_REGISTERS: ClassVar[list[RegisterSet]] = []
+    TOPICS: ClassVar[MappingProxyType] = MappingProxyType({})
 
     def __init__(self, client: AsyncModbusTcpClient, unit: int, mqtt_client: MqttClient, mqtt_prefix: str, config: dict):
         self.client = client
@@ -41,7 +44,7 @@ class Device:
         """
         if self._identifier is None:
             for container in self.static_registers:
-                value = container.search(rf"^SerialNumber$")
+                value = container.search(r"^SerialNumber$")
                 if value is not None:
                     self._identifier = str(value)
                     break
@@ -54,11 +57,7 @@ class Device:
         Returns the MQTT topic prefix for the device.
         """
         if self._prefix is None:
-            self._prefix = (
-                self.identifier + "/"
-                if self.identifier is not None
-                else f"{self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port}.{self.unit}/"
-            )
+            self._prefix = self.identifier + "/" if self.identifier is not None else f"{self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port}.{self.unit}/"
 
         return self._prefix
 
@@ -93,7 +92,7 @@ class Device:
                 bytes(reduce(iadd, [[v >> 8, v & 0xFF] for v in reply.registers], [])),
             )
         except StreamError as e:
-            self.log.error(f"Couldn't parse {format.name}: {str(e)}")
+            self.log.error(f"Couldn't parse {format.name}: {e!s}")
             return None
 
         if parsed is None:
@@ -119,16 +118,7 @@ class Device:
         await self.mqtt_client.publish(full_topic, **kwargs)
 
     async def get_static_data(self) -> None:
-        self.static_registers = [
-            x
-            for x in [
-                await self.read_and_parse(
-                    address=register_set.address, format=register_set.format, register_type=register_set.register_type
-                )
-                for register_set in self.STATIC_REGISTERS
-            ]
-            if x is not None
-        ]
+        self.static_registers = [x for x in [await self.read_and_parse(address=register_set.address, format=register_set.format, register_type=register_set.register_type) for register_set in self.STATIC_REGISTERS] if x is not None]
 
         if self.identifier is not None:
             self.log.info(f"Found device of type {self.__class__.__name__} with serial number {self.identifier}.")
@@ -146,16 +136,7 @@ class Device:
             while True:
                 now = datetime.now(tz=UTC).timestamp()
 
-                self.dynamic_registers = [
-                    x
-                    for x in [
-                        await self.read_and_parse(
-                            address=register_set.address, format=register_set.format, register_type=register_set.register_type
-                        )
-                        for register_set in self.DYNAMIC_REGISTERS
-                    ]
-                    if x is not None
-                ]
+                self.dynamic_registers = [x for x in [await self.read_and_parse(address=register_set.address, format=register_set.format, register_type=register_set.register_type) for register_set in self.DYNAMIC_REGISTERS] if x is not None]
 
                 for name, topic in self.TOPICS.items():
                     for container in self.dynamic_registers:
@@ -178,6 +159,6 @@ class Device:
         except ModbusIOException as e:
             self.log.error(f"unit {self.unit} failed with: {e.message}")
 
-        except ConnectionException as e:
+        except ConnectionException:
             self.log.error("Connection failed. Retrying in 5 s.")
             await sleep(5)

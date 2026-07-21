@@ -1,9 +1,8 @@
-import asyncio
 import logging
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
+from asyncio import TaskGroup, run, sleep
 from pathlib import Path
 
-from asyncio import TaskGroup, sleep, run
 from aiomqtt import Client as MqttClient
 from aiomqtt import MqttError
 
@@ -20,9 +19,7 @@ def parse_args() -> Namespace:
 
     parser.add_argument("-c", "--conf_file", help="Specify config file", metavar="FILE", required=True, type=Path)
 
-    parser.add_argument(
-        "-v", "--verbose", help="Increases log verbosity for each occurence", dest="verbose_count", action="count", default=0
-    )
+    parser.add_argument("-v", "--verbose", help="Increases log verbosity for each occurence", dest="verbose_count", action="count", default=0)
 
     parser.add_argument("--version", action="version", version=__version__)
 
@@ -37,7 +34,7 @@ async def async_main() -> int:
     try:
         config = parse_config(args.conf_file)
     except Exception as e:
-        logging.error("Failure while reading configuration file '%s': %r" % (args.conf_file, e))
+        logging.error(f"Failure while reading configuration file '{args.conf_file}': {e!r}")
         return -1
 
     while True:
@@ -68,7 +65,7 @@ async def async_main() -> int:
             logging.error(f'Error "{error}". Reconnecting in 1 seconds.')
             await sleep(1)
 
-        except Exception as e:
+        except Exception:
             logging.error("Exception not handled", exc_info=True)
             return -1
 

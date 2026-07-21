@@ -1,14 +1,10 @@
-import asyncio
-import logging
-from datetime import datetime, UTC
-from functools import reduce
-from operator import iadd
 from types import MappingProxyType
+from typing import ClassVar
 
-from construct import Adapter, Int16ub, Int32ub, PaddedString, Seek, Struct, Padding
+from construct import Int16ub, Int32ub, PaddedString, Padding, Struct
 
-from modbus2mqtt.device import Device
 from modbus2mqtt.construct_types import Factor
+from modbus2mqtt.device import Device
 from modbus2mqtt.modbus import RegisterSet, RegisterType
 
 
@@ -76,10 +72,10 @@ class GrowattInverter(Device):
         }
     )
 
-    STATIC_REGISTERS = [
+    STATIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=3000, format=HOLDING_FRAME1),
     ]
 
-    DYNAMIC_REGISTERS = [
+    DYNAMIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0x0, format=INPUT_FRAME1, register_type=RegisterType.INPUT),
     ]
