@@ -6,7 +6,7 @@ authors = [
 	{ name = "Tobias Müller", email = "Tobias_Mueller@twam.info" }
 ]
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
 	"PyYAML>=6.0,<7",
 	"paho-mqtt>=1.0,<2", # asyncio-mqtt isn't working with 2, yet
