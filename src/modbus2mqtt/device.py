@@ -21,6 +21,10 @@ class Device:
     DYNAMIC_REGISTERS: ClassVar[list[RegisterSet]] = []
     TOPICS: ClassVar[MappingProxyType] = MappingProxyType({})
 
+    model_number_key: ClassVar[str] = "ModelNumber"
+    serial_number_key: ClassVar[str] = "SerialNumber"
+    software_version_key: ClassVar[str] = "SoftwareVersion"
+
     def __init__(self, client: AsyncModbusTcpClient, unit: int, mqtt_client: MqttClient, mqtt_prefix: str, config: dict):
         self.client = client
         self.unit = unit
@@ -32,24 +36,37 @@ class Device:
         self.dynamic_registers: list[Construct] = []
 
         # Cache values
-        self._identifier = None
         self._prefix = None
 
         self.log = PrefixAdapter(logging.getLogger(__name__), f"{self.client.ctx.comm_params.host}:{self.client.ctx.comm_params.port}.{self.unit}: ")
 
-    @property
-    def identifier(self) -> None | str:
-        """
-        Returns the identifier (e.g., serial number) of the device, if available.
-        """
-        if self._identifier is None:
-            for container in self.static_registers:
-                value = container.search(r"^SerialNumber$")
-                if value is not None:
-                    self._identifier = str(value)
-                    break
+    def _get_static_value(self, key: str) -> str | None:
+        for container in self.static_registers:
+            value = container.search(rf"^{re.escape(key)}$")
+            if value is not None:
+                return str(value)
 
-        return self._identifier
+        return None
+
+    @property
+    def model_number(self) -> str | None:
+        """Return the model number from static registers, if available."""
+        return self._get_static_value(self.model_number_key)
+
+    @property
+    def serial_number(self) -> str | None:
+        """Return the serial number from static registers, if available."""
+        return self._get_static_value(self.serial_number_key)
+
+    @property
+    def software_version(self) -> str | None:
+        """Return the software version from static registers, if available."""
+        return self._get_static_value(self.software_version_key)
+
+    @property
+    def identifier(self) -> str | None:
+        """Return the serial number as the device identifier, if available."""
+        return self.serial_number
 
     @property
     def prefix(self) -> str:
@@ -120,8 +137,13 @@ class Device:
     async def get_static_data(self) -> None:
         self.static_registers = [x for x in [await self.read_and_parse(address=register_set.address, format=register_set.format, register_type=register_set.register_type) for register_set in self.STATIC_REGISTERS] if x is not None]
 
-        if self.identifier is not None:
-            self.log.info(f"Found device of type {self.__class__.__name__} with serial number {self.identifier}.")
+        details = []
+        for label, value in (("serial number", self.serial_number), ("model", self.model_number), ("software version", self.software_version)):
+            if value is not None:
+                details.append(f"{label} {value}")
+
+        description = f" with {', '.join(details)}" if details else ""
+        self.log.info(f"Found device of type {self.__class__.__name__}{description}.")
 
         for name, topic in self.TOPICS.items():
             for container in self.static_registers:

@@ -55,6 +55,9 @@ class Factor(Adapter):
 
 
 class AbbMeter(Device):
+    model_number_key: ClassVar[str] = "TypeDesignation"
+    software_version_key: ClassVar[str] = "MeterFirmwareVersion"
+
     PRODUCTDATA_AND_IDENTIFICATION = "ProductAndIdentification" / Struct(
         "SerialNumber" / Int32ub,
         Padding(6 * 2),
