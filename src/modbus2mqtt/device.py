@@ -1,11 +1,12 @@
 import logging
 import re
 from asyncio import sleep
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from functools import reduce
 from operator import iadd
 from types import MappingProxyType
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from aiomqtt import Client as MqttClient
 from construct import Construct, StreamError
@@ -134,8 +135,12 @@ class Device:
         full_topic = self.mqtt_prefix + self.prefix + topic
         await self.mqtt_client.publish(full_topic, **kwargs)
 
+    def validate_static_data(self) -> None:
+        """Validate device capabilities after reading identification registers."""
+
     async def get_static_data(self) -> None:
         self.static_registers = [x for x in [await self.read_and_parse(address=register_set.address, format=register_set.format, register_type=register_set.register_type) for register_set in self.STATIC_REGISTERS] if x is not None]
+        self.validate_static_data()
 
         details = []
         for label, value in (("serial number", self.serial_number), ("model", self.model_number), ("software version", self.software_version)):
@@ -151,6 +156,14 @@ class Device:
                 if value is not None:
                     await self.publish(topic, payload=value, retain=True)
 
+    def get_topic_values(self) -> Iterator[tuple[str, Any]]:
+        """Yield MQTT topics and values from the latest dynamic readings."""
+        for name, topic in self.TOPICS.items():
+            for container in self.dynamic_registers:
+                value = container.search(rf"^{name}$")
+                if value is not None:
+                    yield topic, value
+
     async def get_messages(self):
         try:
             next_send = {}
@@ -160,19 +173,16 @@ class Device:
 
                 self.dynamic_registers = [x for x in [await self.read_and_parse(address=register_set.address, format=register_set.format, register_type=register_set.register_type) for register_set in self.DYNAMIC_REGISTERS] if x is not None]
 
-                for name, topic in self.TOPICS.items():
-                    for container in self.dynamic_registers:
-                        value = container.search(rf"^{name}$")
-                        if value is not None:
-                            interval = 5
-                            for topic_regex, topic_interval in self.config.get("intervals", {}).items():
-                                if re.match(topic_regex, topic):
-                                    interval = topic_interval
-                                    break
+                for topic, value in self.get_topic_values():
+                    interval = 5
+                    for topic_regex, topic_interval in self.config.get("intervals", {}).items():
+                        if re.match(topic_regex, topic):
+                            interval = topic_interval
+                            break
 
-                            if now > next_send.get(topic, 0):
-                                next_send[topic] = (now // interval + 1) * interval
-                                yield {"topic": topic, "payload": value}
+                    if now > next_send.get(topic, 0):
+                        next_send[topic] = (now // interval + 1) * interval
+                        yield {"topic": topic, "payload": value}
 
                 next_wakeup = now + 1 if len(next_send) == 0 else min(next_send.values())
 

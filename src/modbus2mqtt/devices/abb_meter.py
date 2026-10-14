@@ -3,7 +3,8 @@ from typing import ClassVar
 
 from construct import Adapter, Byte, Int16sb, Int16ub, Int32sb, Int32ub, Int64sb, Int64ub, PaddedString, Padding, Struct
 
-from modbus2mqtt.device import Device
+from modbus2mqtt.exceptions import InvalidConfigurationError
+from modbus2mqtt.meter import Meter, Phase
 from modbus2mqtt.modbus import RegisterSet
 
 
@@ -54,9 +55,20 @@ class Factor(Adapter):
         return obj / self.factor
 
 
-class AbbMeter(Device):
+class AbbMeter(Meter):
     model_number_key: ClassVar[str] = "TypeDesignation"
     software_version_key: ClassVar[str] = "MeterFirmwareVersion"
+
+    @property
+    def phases(self) -> set[Phase]:
+        model = self.model_number
+        if model is not None and model.startswith("B21"):
+            return self._single_phase()
+        if model is not None and model.startswith("B23"):
+            if "phase" in self.config:
+                raise InvalidConfigurationError(f"ABB model {model!r} is three-phase and must not have a phase setting.")
+            return set(Phase)
+        raise InvalidConfigurationError(f"Unsupported ABB model {model!r}: expected a B21 or B23 model from the identification registers.")
 
     PRODUCTDATA_AND_IDENTIFICATION = "ProductAndIdentification" / Struct(
         "SerialNumber" / Int32ub,
@@ -223,6 +235,23 @@ class AbbMeter(Device):
         }
     )
 
+    PHASE_TOPICS = MappingProxyType(
+        {
+            "energy/import": "energy/import",
+            "energy/export": "energy/export",
+            "energy/net": "energy/net",
+            "reactiveenergy/import": "reactiveenergy/import",
+            "reactiveenergy/export": "reactiveenergy/export",
+            "reactiveenergy/net": "reactiveenergy/net",
+            "voltage/L1": "voltage",
+            "current/L1": "current",
+            "power": "power",
+            "reactivepower": "reactivepower",
+            "powerfactor": "powerfactor",
+            "currentquadrant": "currentquadrant",
+        }
+    )
+
     STATIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0x8900, format=PRODUCTDATA_AND_IDENTIFICATION),
     ]
@@ -230,5 +259,11 @@ class AbbMeter(Device):
     DYNAMIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0x5000, format=ENERGY_TOTAL),
         RegisterSet(address=0x5460, format=ENERGY_PER_PHASE),
+        RegisterSet(address=0x5B00, format=MEASUREMENTS),
+    ]
+
+    # Single-phase models do not need the separate per-phase energy block.
+    SINGLE_PHASE_REGISTERS: ClassVar[list[RegisterSet]] = [
+        RegisterSet(address=0x5000, format=ENERGY_TOTAL),
         RegisterSet(address=0x5B00, format=MEASUREMENTS),
     ]

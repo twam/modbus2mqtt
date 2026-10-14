@@ -32,3 +32,10 @@ modbus:
       devices:
         1:
           class: abb_meter
+          # B21 models require phase; B23 models must not configure phase.
+          # phase: L2
+
+        # 2:
+        #   class: sdm120
+        #   # Required for every SDM120:
+        #   phase: L3
