@@ -4,7 +4,7 @@ from typing import ClassVar
 from construct import Adapter, Byte, Int16sb, Int16ub, Int32sb, Int32ub, Int64sb, Int64ub, PaddedString, Padding, Struct
 
 from modbus2mqtt.exceptions import InvalidConfigurationError
-from modbus2mqtt.meter import Meter, Phase
+from modbus2mqtt.meter import Measurement, Meter, MeterTopic, Phase
 from modbus2mqtt.modbus import RegisterSet
 
 
@@ -185,70 +185,25 @@ class AbbMeter(Meter):
             "SerialNumber": "serial_number",
             "TypeDesignation": "product_name",
             "MeterFirmwareVersion": "software_version",
-            "ActiveImport": "energy/import",
-            "ActiveExport": "energy/export",
-            "ActiveNet": "energy/net",
-            "ActiveImportL1": "energy/import/L1",
-            "ActiveImportL2": "energy/import/L2",
-            "ActiveImportL3": "energy/import/L3",
-            "ActiveExportL1": "energy/export/L1",
-            "ActiveExportL2": "energy/export/L2",
-            "ActiveExportL3": "energy/export/L3",
-            "ActiveNetL1": "energy/net/L1",
-            "ActiveNetL2": "energy/net/L2",
-            "ActiveNetL3": "energy/net/L3",
-            "ReactiveImport": "reactiveenergy/import",
-            "ReactiveExport": "reactiveenergy/export",
-            "ReactiveNet": "reactiveenergy/net",
-            "ReactiveImportL1": "reactiveenergy/import/L1",
-            "ReactiveImportL2": "reactiveenergy/import/L2",
-            "ReactiveImportL3": "reactiveenergy/import/L3",
-            "ReactiveExportL1": "reactiveenergy/export/L1",
-            "ReactiveExportL2": "reactiveenergy/export/L2",
-            "ReactiveExportL3": "reactiveenergy/export/L3",
-            "ReactiveNetL1": "reactiveenergy/net/L1",
-            "ReactiveNetL2": "reactiveenergy/net/L2",
-            "ReactiveNetL3": "reactiveenergy/net/L3",
-            "VoltageL1N": "voltage/L1",
-            "VoltageL2N": "voltage/L2",
-            "VoltageL3N": "voltage/L3",
-            "CurrentL1": "current/L1",
-            "CurrentL2": "current/L2",
-            "CurrentL3": "current/L3",
-            "ActivePowerTotal": "power",
-            "ActivePowerL1": "power/L1",
-            "ActivePowerL2": "power/L2",
-            "ActivePowerL3": "power/L3",
-            "ReactivePowerTotal": "reactivepower",
-            "ReactivePowerL1": "reactivepower/L1",
-            "ReactivePowerL2": "reactivepower/L2",
-            "ReactivePowerL3": "reactivepower/L3",
-            "PowerFactorTotal": "powerfactor",
-            "PowerFactorL1": "powerfactor/L1",
-            "PowerFactorL2": "powerfactor/L2",
-            "PowerFactorL3": "powerfactor/L3",
-            "Frequency": "frequency",
-            "CurrentQuadrantTotal": "currentquadrant",
-            "CurrentQuadrantL1": "currentquadrant/L1",
-            "CurrentQuadrantL2": "currentquadrant/L2",
-            "CurrentQuadrantL3": "currentquadrant/L3",
         }
     )
 
-    PHASE_TOPICS = MappingProxyType(
+    MEASUREMENT_TOPICS = MappingProxyType(
         {
-            "energy/import": "energy/import",
-            "energy/export": "energy/export",
-            "energy/net": "energy/net",
-            "reactiveenergy/import": "reactiveenergy/import",
-            "reactiveenergy/export": "reactiveenergy/export",
-            "reactiveenergy/net": "reactiveenergy/net",
-            "voltage/L1": "voltage",
-            "current/L1": "current",
-            "power": "power",
-            "reactivepower": "reactivepower",
-            "powerfactor": "powerfactor",
-            "currentquadrant": "currentquadrant",
+            Measurement.ACTIVE_ENERGY_IMPORT: MeterTopic(total="ActiveImport", phases={phase: f"ActiveImport{phase}" for phase in Phase}),
+            Measurement.ACTIVE_ENERGY_EXPORT: MeterTopic(total="ActiveExport", phases={phase: f"ActiveExport{phase}" for phase in Phase}),
+            Measurement.ACTIVE_ENERGY_NET: MeterTopic(total="ActiveNet", phases={phase: f"ActiveNet{phase}" for phase in Phase}),
+            Measurement.REACTIVE_ENERGY_IMPORT: MeterTopic(total="ReactiveImport", phases={phase: f"ReactiveImport{phase}" for phase in Phase}),
+            Measurement.REACTIVE_ENERGY_EXPORT: MeterTopic(total="ReactiveExport", phases={phase: f"ReactiveExport{phase}" for phase in Phase}),
+            Measurement.REACTIVE_ENERGY_NET: MeterTopic(total="ReactiveNet", phases={phase: f"ReactiveNet{phase}" for phase in Phase}),
+            Measurement.VOLTAGE: MeterTopic(single_phase="VoltageL1N", phases={phase: f"Voltage{phase}N" for phase in Phase}),
+            Measurement.CURRENT: MeterTopic(single_phase="CurrentL1", phases={phase: f"Current{phase}" for phase in Phase}),
+            Measurement.ACTIVE_POWER: MeterTopic(total="ActivePowerTotal", phases={phase: f"ActivePower{phase}" for phase in Phase}),
+            Measurement.REACTIVE_POWER: MeterTopic(total="ReactivePowerTotal", phases={phase: f"ReactivePower{phase}" for phase in Phase}),
+            Measurement.APPARENT_POWER: MeterTopic(total="ApparentPowerTotal", phases={phase: f"ApparentPower{phase}" for phase in Phase}),
+            Measurement.POWER_FACTOR: MeterTopic(total="PowerFactorTotal", phases={phase: f"PowerFactor{phase}" for phase in Phase}),
+            Measurement.FREQUENCY: MeterTopic(total="Frequency"),
+            Measurement.CURRENT_QUADRANT: MeterTopic(total="CurrentQuadrantTotal", phases={phase: f"CurrentQuadrant{phase}" for phase in Phase}),
         }
     )
 

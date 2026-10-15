@@ -5,7 +5,7 @@ from aiomqtt import Client as MqttClient
 from construct import Float32b, Int32ub, Padding, Struct
 from pymodbus.client import AsyncModbusTcpClient
 
-from modbus2mqtt.meter import Meter, Phase
+from modbus2mqtt.meter import Measurement, Meter, MeterTopic, Phase
 from modbus2mqtt.modbus import RegisterSet, RegisterType
 
 
@@ -42,21 +42,23 @@ class Sdm120(Meter):
         "ReactiveExport" / Float32b,
     )
 
-    TOPICS = MappingProxyType(
+    TOPICS = MappingProxyType({"SerialNumber": "serial_number"})
+
+    MEASUREMENT_TOPICS = MappingProxyType(
         {
-            "SerialNumber": "serial_number",
-            "ActiveImport": "energy/import",
-            "ActiveExport": "energy/export",
-            "ReactiveImport": "reactiveenergy/import",
-            "ReactiveExport": "reactiveenergy/export",
-            "Voltage": "voltage",
-            "Current": "current",
-            "ActivePower": "power",
-            "Frequency": "frequency",
+            Measurement.ACTIVE_ENERGY_IMPORT: MeterTopic(total="ActiveImport"),
+            Measurement.ACTIVE_ENERGY_EXPORT: MeterTopic(total="ActiveExport"),
+            Measurement.REACTIVE_ENERGY_IMPORT: MeterTopic(total="ReactiveImport"),
+            Measurement.REACTIVE_ENERGY_EXPORT: MeterTopic(total="ReactiveExport"),
+            Measurement.VOLTAGE: MeterTopic(single_phase="Voltage"),
+            Measurement.CURRENT: MeterTopic(single_phase="Current"),
+            Measurement.ACTIVE_POWER: MeterTopic(total="ActivePower"),
+            Measurement.REACTIVE_POWER: MeterTopic(total="ReactivePower"),
+            Measurement.APPARENT_POWER: MeterTopic(total="ApparentPower"),
+            Measurement.POWER_FACTOR: MeterTopic(total="PowerFactor"),
+            Measurement.FREQUENCY: MeterTopic(total="Frequency"),
         }
     )
-
-    PHASE_TOPICS = MappingProxyType({topic: topic for topic in ("energy/import", "energy/export", "reactiveenergy/import", "reactiveenergy/export", "voltage", "current", "power")})
 
     STATIC_REGISTERS: ClassVar[list[RegisterSet]] = [
         RegisterSet(address=0xFC00, format=SERIAL_NUMBER),
